@@ -1,0 +1,23 @@
+{
+  "name": "launchy",
+  "version": "1.0.0",
+  "description": "Launchy - your self-hosted launch page",
+  "main": "server.js",
+  "author": "Arnaud Dubois <support@progerance.com> (https://progerance.com)",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/progerance/launchy.git"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "better-sqlite3": "^11.3.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "rss-parser": "^3.13.0"
+  }
+}

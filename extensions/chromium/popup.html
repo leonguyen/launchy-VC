@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Launchy</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+<!-- Login View -->
+<div id="login-view" class="view">
+  <div class="header" style="justify-content:center">
+    <img src="icons/logo.png" alt="Launchy" style="height:32px">
+  </div>
+  <p class="subtitle">Connectez-vous à votre dashboard</p>
+  <form id="login-form">
+    <div class="field">
+      <label>Adresse du serveur</label>
+      <input type="url" id="server-url" placeholder="http://localhost:3080" required>
+    </div>
+    <div class="field">
+      <label>Nom d'utilisateur</label>
+      <input type="text" id="login-user" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label>Mot de passe</label>
+      <input type="password" id="login-pass" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn btn-primary" id="login-btn">Se connecter</button>
+    <div class="error-msg" id="login-error"></div>
+  </form>
+</div>
+
+<!-- Main View -->
+<div id="main-view" class="view" style="display:none">
+  <div class="header">
+    <img src="icons/logo.png" alt="Launchy" style="height:20px">
+    <button class="btn-icon" id="logout-btn" title="Déconnexion">&#x2715;</button>
+  </div>
+
+  <!-- Current tab info -->
+  <div class="current-tab" id="current-tab">
+    <img id="tab-favicon" class="tab-favicon" src="" alt="">
+    <div class="tab-info">
+      <div class="tab-title" id="tab-title"></div>
+      <div class="tab-url" id="tab-url"></div>
+    </div>
+  </div>
+
+  <!-- Widget tree -->
+  <div class="section-label">Ajouter dans :</div>
+  <div class="widget-tree" id="widget-tree">
+    <div class="loading">Chargement...</div>
+  </div>
+
+  <button class="btn btn-primary" id="add-btn" disabled>Ajouter le favori</button>
+
+  <!-- Status messages -->
+  <div class="status-msg" id="status-msg"></div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

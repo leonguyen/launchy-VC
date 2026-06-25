@@ -1,0 +1,3193 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Launchy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.3/Sortable.min.js"></script>
+<style>
+:root {
+  --bg: #101722;
+  --bg-card: rgba(18, 24, 34, 0.90);
+  --bg-card-hover: rgba(25, 32, 44, 0.88);
+  --bg-input: rgba(12, 16, 24, 0.9);
+  --text: #f8fafc;
+  --text-muted: #aeb8d0;
+  --accent: #e94b2e;
+  --accent-hover: #ff6347;
+  --accent-blue: #38bdf8;
+  --border: rgba(255,255,255,0.07);
+  --danger: #ff5252;
+  --success: #4caf50;
+  --shadow: 0 12px 35px rgba(0,0,0,0.28);
+  --radius: 10px;
+}
+
+[data-theme="light"] {
+  --bg: #f0f2f5;
+  --bg-card: rgba(255,255,255,0.95);
+  --bg-card-hover: rgba(245,246,250,0.95);
+  --bg-input: #e8eaef;
+  --text: #111318;
+  --text-muted: #5f6a78;
+  --accent: #d4421e;
+  --accent-hover: #e94b2e;
+  --accent-blue: #2196f3;
+  --border: rgba(0,0,0,0.08);
+  --danger: #e53935;
+  --success: #43a047;
+  --shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+#bg-layer {
+  position: fixed; inset: 0; z-index: 0;
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+  display: none;
+}
+#bg-overlay {
+  position: fixed; inset: 0; z-index: 0;
+  background: var(--bg);
+  display: none;
+}
+
+#login-screen, #app { position: relative; z-index: 1; }
+
+/* ─── Login ───────────────────────────────── */
+#login-screen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 20px;
+}
+.login-box {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 40px; width: 100%; max-width: 380px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.login-box h1 { display: none; }
+.login-logo { display: block; margin: 0 auto 16px; height: 56px; }
+.topbar-logo { height: 40px; vertical-align: middle; }
+.login-box p { color: var(--text-muted); text-align: center; margin-bottom: 24px; font-size: 14px; }
+
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+
+input, select, textarea {
+  width: 100%; padding: 10px 12px;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); font-size: 14px;
+  outline: none; transition: border-color 0.2s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+input[type="color"] { padding: 4px; height: 40px; cursor: pointer; }
+input[type="range"] { padding: 0; }
+
+.btn {
+  padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer;
+  font-size: 14px; font-weight: 500; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-primary { background: var(--accent); color: white; width: 100%; justify-content: center; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-sm { padding: 6px 10px; font-size: 12px; }
+.btn-ghost { background: transparent; color: var(--text-muted); }
+.btn-ghost:hover { color: var(--text); background: var(--bg-input); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover { opacity: 0.85; }
+.btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.btn-outline:hover { background: var(--accent); color: white; }
+
+.login-error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 12px; display: none; }
+.login-toggle { text-align: center; margin-top: 16px; font-size: 13px; color: var(--text-muted); }
+.login-toggle a { color: var(--accent); cursor: pointer; text-decoration: none; }
+
+/* ─── Top bar ─────────────────────────────── */
+#app { display: none; }
+
+.topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 16px; background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.topbar-brand { font-weight: 700; font-size: 16px; color: #e94b2e; margin-right: 8px; }
+
+.tabs {
+  display: flex; gap: 2px; flex: 1; overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  padding: 8px 16px; border-radius: 6px; cursor: pointer;
+  font-size: 13px; white-space: nowrap; color: var(--text-muted);
+  transition: all 0.2s; position: relative; display: flex; align-items: center; gap: 4px;
+}
+.tab:hover { color: var(--text); background: var(--bg-card-hover); }
+.tab.active {
+  color: var(--text); background: rgba(233, 75, 46, 0.12);
+  border: 1px solid rgba(233, 75, 46, 0.28); font-weight: 600;
+}
+.tab.shared-tab { font-style: italic; }
+.tab .tab-icon { font-size: 11px; opacity: 0.6; }
+
+.tab .tab-close {
+  display: none; margin-left: 6px; font-size: 14px; line-height: 1; opacity: 0.5;
+}
+.tab:hover .tab-close { display: inline; }
+.tab .tab-close:hover { opacity: 1; color: var(--danger); }
+
+.tab-add {
+  padding: 8px; cursor: pointer; color: var(--text-muted);
+  font-size: 18px; line-height: 1; border-radius: 6px;
+}
+.tab-add:hover { color: var(--accent); background: var(--bg-input); }
+
+.topbar-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+
+.theme-toggle {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 18px; background: transparent;
+  border: 1px solid var(--border); color: var(--text); transition: all 0.2s;
+}
+.theme-toggle:hover { background: var(--bg-input); }
+
+.user-menu {
+  padding: 6px 12px; border-radius: 6px; font-size: 13px;
+  color: var(--text-muted); cursor: pointer; border: 1px solid var(--border);
+}
+.user-menu:hover { background: var(--bg-input); }
+
+/* ─── Dashboard ───────────────────────────── */
+.dashboard {
+  display: flex; gap: 16px; padding: 16px; align-items: flex-start;
+  overflow: hidden; min-height: calc(100vh - 56px);
+}
+.column {
+  flex: 0 1 auto; min-width: 200px; position: relative;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.column-resize-handle {
+  position: absolute; right: -9px; top: 0; bottom: 0;
+  width: 18px; cursor: col-resize; z-index: 10;
+}
+.column-resize-handle::after {
+  content: ''; position: absolute; left: 8px;
+  top: 10%; bottom: 10%; width: 3px;
+  background: var(--border); border-radius: 2px;
+  opacity: 0; transition: opacity 0.2s;
+}
+.column-resize-handle:hover::after { opacity: 1; background: var(--accent); }
+.column.resizing { user-select: none; }
+body.col-resizing { cursor: col-resize !important; user-select: none; }
+body.col-resizing * { cursor: col-resize !important; }
+.column.sortable-ghost { opacity: 0.3; }
+.column.sortable-drag { box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 999; }
+.column-header { display: flex; align-items: center; gap: 8px; padding: 0 4px; }
+.column-header h3 {
+  font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: #b8c0d0; flex: 1; cursor: pointer;
+  padding-bottom: 10px; position: relative;
+}
+.column-header h3::after {
+  content: ''; display: block; width: 28px; height: 2px;
+  margin-top: 8px; background: var(--accent); border-radius: 99px;
+  position: absolute; bottom: 0; left: 0;
+}
+.column-header .col-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.2s; }
+.column-header:hover .col-actions { opacity: 1; }
+
+.columns-sortable {
+  display: flex; gap: 16px; align-items: flex-start; flex: 1; min-width: 0; overflow: hidden;
+}
+.add-column-btn {
+  min-width: 44px; height: 44px; border-radius: var(--radius);
+  border: 2px dashed var(--border); display: flex; align-items: center;
+  justify-content: center; cursor: pointer; color: var(--text-muted);
+  font-size: 24px; transition: all 0.2s; align-self: flex-start; margin-top: 24px;
+}
+.add-column-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ─── Widget ──────────────────────────────── */
+.widget {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+  box-shadow: var(--shadow); transition: all 0.2s;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.widget:hover { box-shadow: 0 16px 40px rgba(0,0,0,0.35); }
+.widget.sortable-ghost { opacity: 0.4; }
+.widget.sortable-drag { box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+
+
+.widget-pagination {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 6px 8px;
+  border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted);
+}
+.widget-pagination button {
+  background: var(--bg-input); border: 1px solid var(--border);
+  color: var(--text-muted); border-radius: 4px; padding: 2px 8px;
+  cursor: pointer; font-size: 12px; transition: all 0.2s;
+}
+.widget-pagination button:hover { color: var(--text); border-color: var(--accent); }
+.widget-pagination button:disabled { opacity: 0.3; cursor: default; }
+.widget-pagination button:disabled:hover { color: var(--text-muted); border-color: var(--border); }
+
+.widget-header {
+  display: flex; align-items: center; padding: 10px 14px;
+  border-bottom: 1px solid var(--border); cursor: grab;
+}
+.widget-header:active { cursor: grabbing; }
+.widget-title { font-size: 13px; font-weight: 600; flex: 1; cursor: pointer; }
+.widget-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.2s; }
+.widget-header:hover .widget-actions { opacity: 1; }
+
+.widget-body { padding: 10px; }
+
+/* ─── Bookmarks: Grid (default) ──────────── */
+.bookmarks-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 4px;
+}
+.bookmark-item {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px 4px; border-radius: 6px; cursor: pointer;
+  text-decoration: none; color: var(--text); transition: background 0.15s; position: relative;
+}
+.bookmark-item:hover { background: var(--bg-card-hover); }
+.bookmark-item img { width: 42px; height: 42px; border-radius: 12px; background: var(--bg-input); }
+.bookmark-item span {
+  font-size: 11px; text-align: center; line-height: 1.3;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; color: var(--text-muted);
+}
+.bookmark-item .bm-edit {
+  position: absolute; top: 2px; right: 2px;
+  width: 20px; height: 20px; border-radius: 4px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  display: none; align-items: center; justify-content: center;
+  font-size: 10px; cursor: pointer; color: var(--text-muted);
+}
+.bookmark-item:hover .bm-edit { display: flex; }
+
+.bookmark-add {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 10px 4px; border-radius: 6px; border: 1px dashed var(--border);
+  cursor: pointer; color: var(--text-muted); font-size: 22px;
+  min-height: 72px; transition: all 0.2s;
+}
+.bookmark-add:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ─── Bookmarks: Grid compact ────────────── */
+.bookmarks-grid.view-grid-sm { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 2px; }
+.bookmarks-grid.view-grid-sm .bookmark-item { padding: 6px 2px; gap: 4px; }
+.bookmarks-grid.view-grid-sm .bookmark-item img { width: 28px; height: 28px; border-radius: 8px; }
+.bookmarks-grid.view-grid-sm .bookmark-item span { font-size: 9px; }
+.bookmarks-grid.view-grid-sm .bookmark-add { min-height: 48px; font-size: 16px; }
+
+/* ─── Bookmarks: Grid large ──────────────── */
+.bookmarks-grid.view-grid-lg { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px; }
+.bookmarks-grid.view-grid-lg .bookmark-item { padding: 12px 6px; gap: 8px; }
+.bookmarks-grid.view-grid-lg .bookmark-item img { width: 56px; height: 56px; border-radius: 16px; }
+.bookmarks-grid.view-grid-lg .bookmark-item span { font-size: 12px; font-weight: 500; }
+.bookmarks-grid.view-grid-lg .bookmark-add { min-height: 96px; font-size: 28px; }
+
+/* ─── Bookmarks: Icons only ──────────────── */
+.bookmarks-grid.view-icons { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 4px; }
+.bookmarks-grid.view-icons .bookmark-item { padding: 6px; gap: 0; }
+.bookmarks-grid.view-icons .bookmark-item img { width: 36px; height: 36px; border-radius: 10px; }
+.bookmarks-grid.view-icons .bookmark-item span { display: none; }
+.bookmarks-grid.view-icons .bookmark-add { min-height: 48px; font-size: 18px; padding: 6px; }
+
+/* ─── Bookmarks: List view ───────────────── */
+.bookmarks-grid.view-list { display: flex; flex-direction: column; gap: 1px; }
+.bookmarks-grid.view-list .bookmark-item {
+  flex-direction: row; padding: 7px 8px; gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.bookmarks-grid.view-list .bookmark-item img { width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0; }
+.bookmarks-grid.view-list .bookmark-item span {
+  text-align: left; font-size: 13px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.bookmarks-grid.view-list .bookmark-add {
+  flex-direction: row; min-height: auto; padding: 7px 8px;
+  font-size: 14px; justify-content: flex-start; gap: 8px;
+}
+
+/* ─── RSS: Headlines (compact) ───────────── */
+.rss-items.view-headlines .rss-item { padding: 5px 4px; gap: 0; }
+.rss-items.view-headlines .rss-item-img { display: none; }
+.rss-items.view-headlines .rss-item-title { font-size: 13px; -webkit-line-clamp: 1; }
+.rss-items.view-headlines .rss-item-date { font-size: 10px; }
+
+/* ─── RSS: Magazine (featured first) ─────── */
+.rss-items.view-magazine .rss-item:first-child { flex-direction: column; }
+.rss-items.view-magazine .rss-item:first-child .rss-item-img {
+  width: 100%; height: 140px; border-radius: 6px; margin-bottom: 4px;
+}
+.rss-items.view-magazine .rss-item:first-child .rss-item-title {
+  font-size: 15px; font-weight: 600; -webkit-line-clamp: 3;
+}
+
+/* ─── RSS: Full (large images) ───────────── */
+.rss-items.view-full .rss-item { flex-direction: column; padding: 10px 4px; }
+.rss-items.view-full .rss-item-img {
+  width: 100%; height: 120px; border-radius: 6px; margin-bottom: 6px;
+}
+.rss-items.view-full .rss-item-title { font-size: 14px; -webkit-line-clamp: 3; }
+
+/* ─── View mode button ──────────────────── */
+.view-mode-dropdown {
+  position: absolute; right: 0; top: 100%;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  z-index: 500; min-width: 160px;
+}
+.view-mode-option {
+  padding: 7px 12px; border-radius: 4px; cursor: pointer;
+  font-size: 12px; color: var(--text); display: flex; align-items: center; gap: 8px;
+}
+.view-mode-option:hover { background: var(--bg-input); }
+.view-mode-option.active { color: var(--accent); font-weight: 600; }
+
+/* ─── Icon picker ─────────────────────────── */
+.icon-picker-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.icon-picker-tabs .btn.active { background: var(--accent); color: white; }
+.icon-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 6px; max-height: 220px; overflow-y: auto; padding: 4px;
+  border: 1px solid var(--border); border-radius: 6px; margin-top: 8px;
+}
+.icon-grid-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 2px; border-radius: 6px; cursor: pointer; transition: background 0.15s;
+}
+.icon-grid-item:hover { background: var(--bg-card-hover); }
+.icon-grid-item.selected { background: var(--accent); border-radius: 6px; }
+.icon-grid-item img { width: 28px; height: 28px; }
+.icon-grid-item span { font-size: 9px; color: var(--text-muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.icon-grid-item.selected span { color: white; }
+.icon-picker-tabs { flex-wrap: wrap; }
+.icon-preview { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 8px; background: var(--bg-input); border-radius: 6px; }
+.icon-preview img { width: 32px; height: 32px; border-radius: 6px; }
+.icon-preview span { font-size: 12px; color: var(--text-muted); }
+
+/* ─── RSS feed ────────────────────────────── */
+.rss-items { display: flex; flex-direction: column; }
+.rss-item {
+  display: flex; gap: 10px;
+  padding: 8px 4px; border-bottom: 1px solid var(--border);
+  text-decoration: none; color: var(--text); transition: background 0.15s;
+}
+.rss-item:last-child { border-bottom: none; }
+.rss-item:hover { background: var(--bg-card-hover); }
+.rss-item-img {
+  width: 80px; height: 56px; border-radius: 4px;
+  object-fit: cover; background: var(--bg-input); flex-shrink: 0;
+}
+.rss-item-content { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.rss-item-title { font-size: 14px; line-height: 1.45; color: var(--text); font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rss-item-date { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+.rss-tooltip {
+  position: fixed; z-index: 900; pointer-events: none;
+  max-width: 380px; padding: 14px 16px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  opacity: 0; transition: opacity 0.15s ease;
+}
+.rss-tooltip.show { opacity: 1; }
+.rss-tooltip-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 6px; }
+.rss-tooltip-snippet { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.rss-tooltip-date { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+.rss-tooltip-img { width: 100%; max-height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 8px; }
+
+/* ─── RSS Settings Panel ─────────────────── */
+.rss-settings-tabs { display: flex; gap: 0; margin: -8px -8px 16px -8px; border-bottom: 1px solid var(--border); }
+.rss-tab { flex: 1; padding: 10px 0; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.rss-tab:hover { color: var(--text); }
+.rss-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.rss-tab-content { display: none; }
+.rss-tab-content.active { display: block; }
+.rss-feed-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+.rss-feed-item { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-radius: 8px; background: var(--bg-input); }
+.rss-feed-item:hover { background: var(--bg-card-hover); }
+.rss-feed-handle { cursor: grab; color: var(--text-muted); font-size: 16px; flex-shrink: 0; user-select: none; }
+.rss-feed-handle:active { cursor: grabbing; }
+.rss-feed-icon { width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0; object-fit: contain; background: var(--bg-card); }
+.rss-feed-info { flex: 1; min-width: 0; }
+.rss-feed-title { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rss-feed-url { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rss-feed-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 4px; border-radius: 4px; flex-shrink: 0; }
+.rss-feed-del:hover { color: var(--danger); background: rgba(239,68,68,0.1); }
+.rss-add-feed { width: 100%; padding: 10px; border: 1px dashed var(--border); border-radius: 8px; background: none; color: var(--text-muted); font-size: 13px; cursor: pointer; transition: all 0.15s; }
+.rss-add-feed:hover { border-color: var(--accent); color: var(--accent); }
+.setting-section { margin-bottom: 16px; }
+.setting-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.setting-section select { width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; }
+.setting-toggle { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--border); }
+.setting-toggle span { font-size: 13px; color: var(--text); }
+.toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: var(--bg-input); border-radius: 24px; cursor: pointer; transition: background 0.2s; }
+.toggle-slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.2s; }
+.toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+.setting-apply-all { display: block; margin-top: 16px; padding: 10px 0; text-align: center; color: var(--accent); font-size: 13px; cursor: pointer; text-decoration: none; border: none; background: none; width: 100%; }
+.setting-apply-all:hover { text-decoration: underline; }
+/* ─── RSS: Featured first article ────────── */
+.rss-items:not(.img-none) .rss-item:first-child { flex-direction: column; }
+.rss-items:not(.img-none) .rss-item:first-child .rss-item-img {
+  width: 100%; height: 160px; border-radius: 8px; margin-bottom: 6px;
+}
+.rss-items:not(.img-none) .rss-item:first-child .rss-item-title {
+  font-size: 16px; font-weight: 700; -webkit-line-clamp: 3;
+}
+.rss-items:not(.img-none) .rss-item:first-child .rss-item-snippet {
+  -webkit-line-clamp: 3; font-size: 13px;
+}
+
+.rss-items.img-none .rss-item-img { display: none; }
+.rss-items.img-small .rss-item-img { width: 60px; height: 42px; }
+.rss-items.img-large .rss-item-img { width: 100%; height: 120px; border-radius: 6px; margin-bottom: 6px; }
+.rss-items.img-large .rss-item { flex-direction: column; }
+.rss-items.no-timestamps .rss-item-date { display: none; }
+.rss-items.truncate-titles .rss-item-title { -webkit-line-clamp: 1; }
+.rss-item-snippet { font-size: 12px; color: #8b95a7; line-height: 1.4; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ─── Notes ───────────────────────────────── */
+.notes-content {
+  width: 100%; min-height: 100px; background: transparent; border: none;
+  color: var(--text); font-size: 13px; line-height: 1.6; resize: vertical;
+  font-family: inherit; padding: 0;
+}
+.notes-content:focus { outline: none; }
+
+/* ─── Weather widget ──────────────────────── */
+.weather-main { display: flex; align-items: center; gap: 16px; padding: 8px 0; }
+.weather-icon { font-size: 42px; line-height: 1; }
+.weather-temp { font-size: 32px; font-weight: 700; }
+.weather-desc { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.weather-details { display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+.weather-forecast {
+  display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
+}
+.weather-forecast-day {
+  flex: 1; text-align: center; font-size: 12px;
+}
+.weather-forecast-day .wf-date { color: var(--text-muted); margin-bottom: 4px; }
+.weather-forecast-day .wf-temps { font-weight: 600; }
+.weather-loading, .weather-error { padding: 12px; font-size: 13px; color: var(--text-muted); }
+
+/* ─── Weather widget (enhanced) ──────────── */
+.weather-widget {
+  border-radius: 8px; padding: 12px; transition: background 0.4s;
+}
+.weather-current {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 10px;
+}
+.weather-svg-icon { width: 64px; height: 64px; flex-shrink: 0; }
+.weather-svg-icon svg { width: 100%; height: 100%; }
+.weather-temp { font-size: 32px; font-weight: 700; line-height: 1.1; }
+.weather-desc { font-size: 13px; color: var(--text-muted); margin-top: 2px; text-transform: capitalize; }
+
+.weather-info-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  margin-bottom: 10px;
+}
+.weather-info-item {
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 6px 8px; border-radius: 6px;
+  background: var(--bg-input); border: 1px solid var(--border);
+}
+.wi-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.wi-value { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.wi-value svg { flex-shrink: 0; }
+
+.weather-sun {
+  display: flex; justify-content: center; gap: 24px;
+  font-size: 12px; color: var(--text-muted); padding: 6px 0;
+  border-top: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.weather-sun span { display: flex; align-items: center; gap: 5px; }
+.weather-sun svg { flex-shrink: 0; }
+
+.weather-hourly {
+  display: flex; gap: 2px; overflow-x: auto; padding: 6px 0;
+  border-top: 1px solid var(--border);
+  scrollbar-width: none; margin-bottom: 8px;
+}
+.weather-hourly::-webkit-scrollbar { display: none; }
+.weather-hourly-item {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
+  gap: 3px; padding: 5px 8px; border-radius: 6px; min-width: 48px;
+  transition: background 0.15s;
+}
+.weather-hourly-item:hover { background: var(--bg-card-hover); }
+.wh-time { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+.wh-icon { width: 24px; height: 24px; }
+.wh-icon svg { width: 100%; height: 100%; }
+.wh-temp { font-size: 12px; font-weight: 700; }
+.wh-rain { font-size: 9px; color: #38bdf8; }
+
+.weather-forecast-5d {
+  display: flex; gap: 4px; padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.weather-forecast-5d .weather-forecast-day {
+  flex: 1; text-align: center; font-size: 11px;
+  padding: 6px 2px; border-radius: 6px; transition: background 0.15s;
+}
+.weather-forecast-5d .weather-forecast-day:hover { background: var(--bg-card-hover); }
+.weather-forecast-5d .wf-date { color: var(--text-muted); margin-bottom: 3px; font-weight: 600; text-transform: capitalize; }
+.weather-forecast-5d .wf-icon { width: 28px; height: 28px; margin: 2px auto; }
+.weather-forecast-5d .wf-icon svg { width: 100%; height: 100%; }
+.weather-forecast-5d .wf-temps { font-weight: 600; margin-top: 2px; }
+.weather-forecast-5d .wf-rain { font-size: 9px; color: #38bdf8; margin-top: 1px; }
+
+.weather-updated {
+  text-align: center; font-size: 10px; color: rgba(174,184,208,0.4);
+  margin-top: 6px;
+}
+.weather-link {
+  display: block; text-align: right; margin-top: 8px; font-size: 11px;
+}
+.weather-link a {
+  color: var(--text-muted); text-decoration: none; opacity: 0.6; transition: opacity .2s;
+}
+.weather-link a:hover { opacity: 1; text-decoration: underline; }
+
+@keyframes weather-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes weather-float { 0%,100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
+@keyframes weather-rain { 0% { transform: translateY(-4px); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(8px); opacity: 0; } }
+@keyframes weather-snow { 0% { transform: translateY(-4px) rotate(0deg); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(8px) rotate(90deg); opacity: 0; } }
+@keyframes weather-flash { 0%,100% { opacity: 0; } 5%,15% { opacity: 1; } 10%,20% { opacity: 0; } }
+@keyframes weather-fog { 0%,100% { opacity: 0.3; } 50% { opacity: 0.7; } }
+
+/* ─── Clock widget ────────────────────────── */
+.clock-display { text-align: center; padding: 16px 0; }
+.clock-time { font-size: 48px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 2px; }
+.clock-date { font-size: 14px; color: var(--text-muted); margin-top: 8px; }
+.clock-timezone { font-size: 11px; color: var(--text-muted); margin-top: 4px; opacity: 0.7; }
+
+/* ─── Search widget ───────────────────────── */
+.search-form { display: flex; gap: 8px; }
+.search-form input {
+  flex: 1; padding: 10px 14px; border-radius: 20px;
+  background: var(--bg-input); border: 1px solid var(--border);
+  color: var(--text); font-size: 14px;
+}
+.search-form input:focus { border-color: var(--accent); }
+.search-form button {
+  padding: 10px 18px; border-radius: 20px; background: var(--accent);
+  color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 500;
+}
+.search-form button:hover { background: var(--accent-hover); }
+.search-engine-label { font-size: 11px; color: var(--text-muted); margin-top: 8px; text-align: right; }
+
+/* ─── Embed widget ────────────────────────── */
+.embed-frame {
+  width: 100%; border: none; border-radius: 4px;
+  background: var(--bg-input); min-height: 200px;
+}
+
+/* ─── Modal ───────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.show { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px; width: 90%; max-width: 480px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+  transform: scale(0.95); transition: transform 0.2s;
+  max-height: 85vh; overflow-y: auto;
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+}
+.modal-overlay.show .modal { transform: scale(1); }
+.modal h2 { font-size: 18px; margin-bottom: 16px; }
+.modal .form-group { margin-bottom: 14px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+.modal-section { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.modal-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.modal-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted); }
+
+.share-user-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.share-user-row:last-child { border-bottom: none; }
+
+/* ─── Toast ───────────────────────────────── */
+.toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  padding: 10px 16px; border-radius: 8px; font-size: 13px;
+  background: var(--bg-card); border: 1px solid var(--border); box-shadow: var(--shadow);
+  animation: toastIn 0.3s ease;
+}
+.toast.error { border-color: var(--danger); }
+.toast.success { border-color: var(--success); }
+@keyframes toastIn { from { transform: translateX(100%); opacity: 0; } }
+
+/* ─── Dropdown ────────────────────────────── */
+.dropdown {
+  position: absolute; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  z-index: 500; min-width: 180px;
+}
+.dropdown-item {
+  padding: 8px 12px; border-radius: 4px; cursor: pointer;
+  font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 8px;
+}
+.dropdown-item:hover { background: var(--bg-input); }
+.dropdown-item.danger { color: var(--danger); }
+.dropdown-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
+.context-menu { position: fixed; z-index: 600; }
+
+/* ─── Public banner ───────────────────────── */
+.public-banner {
+  background: var(--accent); color: white; text-align: center;
+  padding: 10px; font-size: 14px;
+}
+
+/* ─── AI Chat widget ─────────────────────── */
+.ai-chat { display: flex; flex-direction: column; height: 400px; }
+.ai-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
+.ai-msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; word-wrap: break-word; white-space: pre-wrap; }
+.ai-msg.user { align-self: flex-end; background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+.ai-msg.assistant { align-self: flex-start; background: var(--bg-input); color: var(--text); border-bottom-left-radius: 4px; }
+.ai-msg.error { align-self: center; background: rgba(255,60,60,0.15); color: #ff6b6b; font-size: 12px; }
+.ai-input-row { display: flex; gap: 6px; padding-top: 8px; border-top: 1px solid var(--border); }
+.ai-input-row input { flex: 1; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 13px; font-family: inherit; }
+.ai-input-row input:focus { outline: none; border-color: var(--accent); }
+.ai-input-row button { background: var(--accent); border: none; border-radius: 8px; padding: 8px 14px; color: white; cursor: pointer; font-size: 14px; }
+.ai-input-row button:hover { opacity: 0.9; }
+.ai-input-row button:disabled { opacity: 0.4; cursor: not-allowed; }
+.ai-typing { align-self: flex-start; color: var(--text-muted); font-size: 12px; font-style: italic; }
+.ai-no-key { padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+.ai-no-key button { margin-top: 10px; }
+
+.hidden { display: none !important; }
+.sortable-drag { z-index: 999; }
+</style>
+</head>
+<body>
+
+<div id="bg-layer"></div>
+<div id="bg-overlay"></div>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-box">
+    <img src="/logo.png" alt="Launchy" class="login-logo">
+    <h1>Launchy</h1>
+    <p id="login-subtitle">Connectez-vous pour acceder a votre tableau de bord</p>
+    <form id="login-form">
+      <div class="form-group">
+        <label>Nom d'utilisateur</label>
+        <input type="text" id="login-user" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label>Mot de passe</label>
+        <input type="password" id="login-pass" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" id="login-btn">Se connecter</button>
+      <div class="login-error" id="login-error"></div>
+    </form>
+    <div class="login-toggle">
+      <span id="toggle-text">Pas encore de compte ?</span>
+      <a id="toggle-link" onclick="toggleAuthMode()">Creer un compte</a>
+    </div>
+  </div>
+</div>
+
+<!-- Public page view -->
+<div id="public-view" style="display:none">
+  <div class="public-banner" id="public-banner"></div>
+  <div class="dashboard" id="public-dashboard"></div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div class="topbar">
+    <img src="/logo.png" alt="Launchy" class="topbar-logo">
+    <div class="tabs" id="tabs"></div>
+    <div class="tab-add" onclick="addPage()" title="Nouvelle page">+</div>
+    <div class="topbar-actions">
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Changer le theme"></button>
+      <div class="user-menu" id="user-menu" onclick="showUserMenu(event)"></div>
+    </div>
+  </div>
+  <div class="dashboard" id="dashboard"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+<div class="rss-tooltip" id="rss-tooltip">
+  <img class="rss-tooltip-img" id="rss-tooltip-img" src="" alt="" style="display:none">
+  <div class="rss-tooltip-title" id="rss-tooltip-title"></div>
+  <div class="rss-tooltip-snippet" id="rss-tooltip-snippet"></div>
+  <div class="rss-tooltip-date" id="rss-tooltip-date"></div>
+</div>
+
+<input type="file" id="import-file-input" accept=".html,.htm,.opml,.xml" style="display:none">
+
+<script>
+// ─── State ────────────────────────────────────────────
+if (!localStorage.getItem('launchy_token') && localStorage.getItem('startme_token')) {
+  localStorage.setItem('launchy_token', localStorage.getItem('startme_token'));
+  localStorage.removeItem('startme_token');
+}
+let token = localStorage.getItem('launchy_token');
+let currentUser = null;
+let dashboard = [];
+let sharedPages = [];
+let activePageId = null;
+let activeSharedPageId = null;
+let sortableInstances = [];
+let clockIntervals = [];
+let widgetPages = {};
+
+// ─── API helper ───────────────────────────────────────
+async function api(path, opts = {}) {
+  const res = await fetch('/api' + path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: 'Bearer ' + token } : {}),
+      ...opts.headers
+    },
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (res.status === 401) { logout(); throw new Error('Non authentifie'); }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Erreur');
+  return data;
+}
+
+// ─── Check for public page ───────────────────────────
+function checkPublicPage() {
+  const hash = location.hash;
+  const m = hash.match(/^#\/public\/(\d+)$/);
+  if (m) {
+    loadPublicPage(m[1]);
+    return true;
+  }
+  return false;
+}
+
+async function loadPublicPage(pageId) {
+  try {
+    const res = await fetch('/api/public/page/' + pageId);
+    if (!res.ok) throw new Error('Page non trouvée');
+    const page = await res.json();
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('public-view').style.display = 'block';
+    document.getElementById('public-banner').textContent = `${page.title} — partage par ${page.owner_name}`;
+    renderPublicPage(page);
+  } catch {
+    document.getElementById('public-view').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Page non trouvee ou non publique.</div>';
+    document.getElementById('public-view').style.display = 'block';
+    document.getElementById('login-screen').style.display = 'none';
+  }
+}
+
+function renderPublicPage(page) {
+  const el = document.getElementById('public-dashboard');
+  el.innerHTML = page.columns.map(col => `
+    <div class="column">
+      <div class="column-header"><h3>${esc(col.title)}</h3></div>
+      <div class="widgets-container">
+        ${col.widgets.map(w => renderWidget(w, true)).join('')}
+      </div>
+    </div>
+  `).join('');
+  loadRSSFeeds(page);
+  startClocks();
+  loadWeatherWidgets(page);
+}
+
+// ─── Auth ─────────────────────────────────────────────
+let isRegisterMode = false;
+
+function toggleAuthMode() {
+  isRegisterMode = !isRegisterMode;
+  document.getElementById('login-subtitle').textContent = isRegisterMode
+    ? 'Creez votre compte pour commencer'
+    : 'Connectez-vous pour acceder a votre tableau de bord';
+  document.getElementById('login-btn').textContent = isRegisterMode ? 'Creer le compte' : 'Se connecter';
+  document.getElementById('toggle-text').textContent = isRegisterMode ? 'Deja un compte ?' : 'Pas encore de compte ?';
+  document.getElementById('toggle-link').textContent = isRegisterMode ? 'Se connecter' : 'Creer un compte';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  try {
+    const endpoint = isRegisterMode ? '/auth/register' : '/auth/login';
+    const data = await api(endpoint, { method: 'POST', body: { username, password } });
+    token = data.token;
+    currentUser = data.user;
+    localStorage.setItem('launchy_token', token);
+    initApp();
+  } catch (err) {
+    const el = document.getElementById('login-error');
+    el.textContent = err.message;
+    el.style.display = 'block';
+  }
+});
+
+function logout() {
+  token = null;
+  currentUser = null;
+  localStorage.removeItem('launchy_token');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('public-view').style.display = 'none';
+  clearBackground();
+}
+
+// ─── Init ─────────────────────────────────────────────
+async function initApp() {
+  try {
+    currentUser = await api('/auth/me');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('public-view').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    applyTheme(currentUser.theme || 'dark');
+    applyCustomization(currentUser);
+    document.getElementById('user-menu').textContent = currentUser.username;
+    await loadDashboard();
+  } catch {
+    logout();
+  }
+}
+
+async function loadDashboard() {
+  dashboard = await api('/dashboard');
+  try { sharedPages = await api('/shared-pages'); } catch { sharedPages = []; }
+  if (!activePageId && !activeSharedPageId && dashboard.length > 0) activePageId = dashboard[0].id;
+  renderTabs();
+  renderPage();
+}
+
+// ─── Theme & Customization ───────────────────────────
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+async function toggleTheme() {
+  const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  applyTheme(newTheme);
+  await api('/auth/theme', { method: 'PUT', body: { theme: newTheme } });
+}
+
+function applyCustomization(user) {
+  if (user.background_url) {
+    document.getElementById('bg-layer').style.backgroundImage = `url(${user.background_url})`;
+    document.getElementById('bg-layer').style.display = 'block';
+    document.getElementById('bg-overlay').style.display = 'block';
+    document.getElementById('bg-overlay').style.opacity = user.background_overlay ?? 0.85;
+  } else {
+    clearBackground();
+  }
+  if (user.accent_color) {
+    document.documentElement.style.setProperty('--accent', user.accent_color);
+    // compute a lighter hover
+    document.documentElement.style.setProperty('--accent-hover', user.accent_color + 'cc');
+  } else {
+    document.documentElement.style.removeProperty('--accent');
+    document.documentElement.style.removeProperty('--accent-hover');
+  }
+}
+
+function clearBackground() {
+  document.getElementById('bg-layer').style.display = 'none';
+  document.getElementById('bg-overlay').style.display = 'none';
+}
+
+// ─── Tabs ─────────────────────────────────────────────
+function renderTabs() {
+  const container = document.getElementById('tabs');
+  let html = dashboard.map(p => `
+    <div class="tab ${p.id === activePageId && !activeSharedPageId ? 'active' : ''}"
+         onclick="switchPage(${p.id})" ondblclick="renamePage(${p.id})"
+         oncontextmenu="pageContextMenu(event, ${p.id})">
+      ${p.is_public ? '<span class="tab-icon">🌐</span>' : ''}
+      ${esc(p.title)}
+      ${dashboard.length > 1 ? `<span class="tab-close" onclick="event.stopPropagation();deletePage(${p.id})">×</span>` : ''}
+    </div>
+  `).join('');
+
+  if (sharedPages.length > 0) {
+    html += '<div style="width:1px;background:var(--border);margin:4px 6px;"></div>';
+    html += sharedPages.map(p => `
+      <div class="tab shared-tab ${p.id === activeSharedPageId ? 'active' : ''}"
+           onclick="switchSharedPage(${p.id})">
+        <span class="tab-icon">👥</span>
+        ${esc(p.title)} <span style="font-size:11px;opacity:0.6">(${esc(p.owner_name)})</span>
+      </div>
+    `).join('');
+  }
+  container.innerHTML = html;
+}
+
+function switchPage(pageId) {
+  activePageId = pageId;
+  activeSharedPageId = null;
+  renderTabs();
+  renderPage();
+}
+
+function switchSharedPage(pageId) {
+  activeSharedPageId = pageId;
+  activePageId = null;
+  renderTabs();
+  renderPage();
+}
+
+async function addPage() {
+  const title = prompt('Nom de la nouvelle page :');
+  if (!title) return;
+  const page = await api('/pages', { method: 'POST', body: { title } });
+  dashboard.push({ ...page, columns: [] });
+  activePageId = page.id;
+  activeSharedPageId = null;
+  renderTabs();
+  renderPage();
+}
+
+async function renamePage(pageId) {
+  const page = dashboard.find(p => p.id === pageId);
+  const title = prompt('Nouveau nom :', page.title);
+  if (!title || title === page.title) return;
+  await api(`/pages/${pageId}`, { method: 'PUT', body: { title } });
+  page.title = title;
+  renderTabs();
+}
+
+async function deletePage(pageId) {
+  if (!confirm('Supprimer cette page et tout son contenu ?')) return;
+  await api(`/pages/${pageId}`, { method: 'DELETE' });
+  dashboard = dashboard.filter(p => p.id !== pageId);
+  if (activePageId === pageId) activePageId = dashboard[0]?.id;
+  renderTabs();
+  renderPage();
+}
+
+// ─── Page context menu ───────────────────────────────
+function pageContextMenu(event, pageId) {
+  event.preventDefault();
+  event.stopPropagation();
+  closeDropdowns();
+  const page = dashboard.find(p => p.id === pageId);
+  if (!page) return;
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'dropdown context-menu';
+  dropdown.style.top = event.clientY + 'px';
+  dropdown.style.left = event.clientX + 'px';
+  dropdown.innerHTML = `
+    <div class="dropdown-item" onclick="renamePage(${pageId});closeDropdowns()">Renommer</div>
+    <div class="dropdown-item" onclick="sharePageDialog(${pageId});closeDropdowns()">Partager</div>
+    <div class="dropdown-item" onclick="togglePagePublic(${pageId});closeDropdowns()">
+      ${page.is_public ? 'Rendre privee' : 'Rendre publique'}
+    </div>
+    ${page.is_public ? `<div class="dropdown-item" onclick="copyPublicLink(${pageId});closeDropdowns()">Copier le lien public</div>` : ''}
+    <div class="dropdown-sep"></div>
+    ${dashboard.length > 1 ? `<div class="dropdown-item danger" onclick="deletePage(${pageId});closeDropdowns()">Supprimer</div>` : ''}
+  `;
+  document.body.appendChild(dropdown);
+  setTimeout(() => document.addEventListener('click', closeDropdowns, { once: true }), 10);
+}
+
+async function togglePagePublic(pageId) {
+  const page = dashboard.find(p => p.id === pageId);
+  const newVal = !page.is_public;
+  await api(`/pages/${pageId}/visibility`, { method: 'PUT', body: { is_public: newVal } });
+  page.is_public = newVal ? 1 : 0;
+  renderTabs();
+  toast(newVal ? 'Page rendue publique' : 'Page rendue privee', 'success');
+}
+
+function copyPublicLink(pageId) {
+  const url = `${location.origin}/#/public/${pageId}`;
+  navigator.clipboard.writeText(url).then(() => toast('Lien copie !', 'success'));
+}
+
+async function sharePageDialog(pageId) {
+  const data = await api(`/pages/${pageId}/shares`);
+  let sharesHtml = data.shares.length > 0
+    ? data.shares.map(s => `
+      <div class="share-user-row">
+        <span>${esc(s.username)}</span>
+        <button class="btn btn-ghost btn-sm" onclick="unsharePage(${pageId}, ${s.shared_with_user_id})">Retirer</button>
+      </div>
+    `).join('')
+    : '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Aucun partage</div>';
+
+  showModal('Partager la page', `
+    <div class="modal-section">
+      <h3>Partager avec un utilisateur</h3>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="share-username" placeholder="Nom d'utilisateur">
+        <button class="btn btn-outline btn-sm" onclick="doSharePage(${pageId})" style="white-space:nowrap">Partager</button>
+      </div>
+    </div>
+    <div class="modal-section">
+      <h3>Utilisateurs avec acces</h3>
+      <div id="share-list">${sharesHtml}</div>
+    </div>
+  `, null);
+}
+
+async function doSharePage(pageId) {
+  const username = document.getElementById('share-username').value.trim();
+  if (!username) return;
+  try {
+    await api(`/pages/${pageId}/share`, { method: 'POST', body: { username } });
+    toast('Page partagee avec ' + username, 'success');
+    sharePageDialog(pageId);
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function unsharePage(pageId, userId) {
+  await api(`/pages/${pageId}/share/${userId}`, { method: 'DELETE' });
+  toast('Partage retire', 'success');
+  sharePageDialog(pageId);
+}
+
+// ─── Render page ──────────────────────────────────────
+function renderPage() {
+  destroySortables();
+  stopClocks();
+
+  let page = null;
+  let readOnly = false;
+
+  if (activeSharedPageId) {
+    page = sharedPages.find(p => p.id === activeSharedPageId);
+    readOnly = true;
+  } else {
+    page = dashboard.find(p => p.id === activePageId);
+  }
+
+  if (!page) { document.getElementById('dashboard').innerHTML = ''; return; }
+
+  const el = document.getElementById('dashboard');
+  el.innerHTML = `<div class="columns-sortable" id="columns-sortable">` + page.columns.map(col => `
+    <div class="column" data-col-id="${col.id}" style="width:${colWidth(col.width)}px">
+      <div class="column-header" data-drag-col>
+        <h3 ${readOnly ? '' : `ondblclick="renameColumn(${col.id})"`}>${esc(col.title)}</h3>
+        ${readOnly ? '' : `
+        <div class="col-actions">
+          <button class="btn btn-ghost btn-sm" onclick="addWidget(${col.id})" title="Ajouter un widget">+</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteColumn(${col.id})" title="Supprimer">×</button>
+        </div>`}
+      </div>
+      <div class="widgets-container" data-col-id="${col.id}">
+        ${col.widgets.map(w => renderWidget(w, readOnly)).join('')}
+      </div>
+      ${readOnly ? '' : `<div class="column-resize-handle" onmousedown="startColResize(event, ${col.id})"></div>`}
+    </div>
+  `).join('') + `</div>` + (readOnly ? '' : '<div class="add-column-btn" onclick="addColumn()" title="Ajouter une colonne">+</div>');
+
+  if (!readOnly) initSortables();
+  loadRSSFeeds(page);
+  startClocks();
+  loadWeatherWidgets(page);
+  loadAIWidgets(page);
+  requestAnimationFrame(() => applyBookmarkPagination());
+}
+
+function getWidgetPage(wid) { return widgetPages[wid] || 0; }
+
+function renderBookmarkItems(items, wId, readOnly) {
+  const linkTarget = currentUser?.link_target || '_blank';
+  return items.map(b => `
+    <a class="bookmark-item" href="${esc(b.url)}" target="${linkTarget}" data-bm-id="${b.id}" title="${esc(b.title)}">
+      <img src="${b.icon || '/api/favicon?url=' + encodeURIComponent(b.url)}" alt="" onload="onFaviconLoad(this, '${esc(b.title).replace(/'/g, "\\'")}')" onerror="onFaviconError(this, '${esc(b.title).replace(/'/g, "\\'")}')">
+      <span>${esc(b.title)}</span>
+      ${readOnly ? '' : `<div class="bm-edit" onclick="event.preventDefault();event.stopPropagation();editBookmark(${wId},${b.id})">&#9998;</div>`}
+    </a>
+  `).join('');
+}
+
+function renderBookmarkPage(w, readOnly) {
+  const vm = w.config?.viewMode || '';
+  const cls = vm ? ' view-' + vm : '';
+  return `<div class="bookmarks-grid${cls}" data-widget-id="${w.id}">
+    ${renderBookmarkItems(w.bookmarks || [], w.id, readOnly)}
+    ${readOnly ? '' : `<div class="bookmark-add" onclick="addBookmark(${w.id})">+</div>`}
+  </div>`;
+}
+
+function applyBookmarkPagination() {
+}
+
+function renderWidget(w, readOnly = false) {
+  let body = '';
+
+  const viewMode = w.config?.viewMode || '';
+
+  if (w.type === 'bookmarks') {
+    body = renderBookmarkPage(w, readOnly);
+  } else if (w.type === 'rss') {
+    const _ds = getRSSDisplaySettings(w);
+    body = `<div class="rss-items ${rssContainerClasses(_ds)}" id="rss-${w.id}"><div class="weather-loading">Chargement...</div></div>`;
+  } else if (w.type === 'notes') {
+    const content = w.config?.content || '';
+    if (readOnly) {
+      body = `<div style="font-size:13px;line-height:1.6;white-space:pre-wrap">${esc(content)}</div>`;
+    } else {
+      body = `<textarea class="notes-content" data-widget-id="${w.id}" onblur="saveNotes(${w.id}, this.value)" placeholder="Ecrivez ici...">${esc(content)}</textarea>`;
+    }
+  } else if (w.type === 'weather') {
+    body = `<div id="weather-${w.id}" class="weather-loading">Chargement...</div>`;
+  } else if (w.type === 'clock') {
+    const tz = w.config?.timezone || '';
+    const f24 = w.config?.format24h !== false;
+    body = `<div class="clock-display" data-clock data-tz="${esc(tz)}" data-f24="${f24}">
+      <div class="clock-time"></div>
+      <div class="clock-date"></div>
+      ${tz ? `<div class="clock-timezone">${esc(tz)}</div>` : ''}
+    </div>`;
+  } else if (w.type === 'search') {
+    const engine = w.config?.engine || 'google';
+    const customUrl = w.config?.customUrl || '';
+    const names = { google: 'Google', duckduckgo: 'DuckDuckGo', bing: 'Bing', custom: 'Personnalise' };
+    body = `<form class="search-form" onsubmit="doSearch(event, '${engine}', '${esc(customUrl)}')">
+      <input type="text" placeholder="Rechercher..." required>
+      <button type="submit">Go</button>
+    </form>
+    <div class="search-engine-label">${names[engine] || engine}</div>`;
+  } else if (w.type === 'embed') {
+    const url = w.config?.url || '';
+    const embedH = w.config?.height || 300;
+    if (url) {
+      body = `<iframe class="embed-frame" src="${esc(url)}" style="height:${embedH}px" sandbox="allow-scripts allow-same-origin allow-popups" loading="lazy"></iframe>`;
+    } else {
+      body = `<div style="padding:12px;color:var(--text-muted);font-size:13px">Aucune URL configuree</div>`;
+    }
+  } else if (w.type === 'ai') {
+    const hasKey = !!w.config?.apiKey;
+    if (!hasKey && !readOnly) {
+      body = `<div class="ai-no-key">
+        <div style="font-size:28px;margin-bottom:8px">🤖</div>
+        <div>Configurez votre cle API pour commencer</div>
+        <button class="btn btn-primary btn-sm" onclick="editAIConfig(${w.id})" style="margin-top:10px">Configurer</button>
+      </div>`;
+    } else {
+      const provLabel = { mistral: 'Mistral', openai: 'OpenAI', anthropic: 'Anthropic' }[w.config?.provider] || 'IA';
+      body = `<div class="ai-chat" id="ai-chat-${w.id}">
+        <div class="ai-messages" id="ai-messages-${w.id}"></div>
+        <form class="ai-input-row" onsubmit="sendAIMessage(event, ${w.id})">
+          <input type="text" id="ai-input-${w.id}" placeholder="Ecrivez un message..." autocomplete="off">
+          <button type="submit" id="ai-send-${w.id}">&#10148;</button>
+        </form>
+      </div>`;
+    }
+  }
+
+  const viewBtn = w.type === 'bookmarks'
+    ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();toggleViewMode(event,${w.id},'${w.type}')" title="Mode d'affichage" style="font-size:14px">&#9783;</button>`
+    : '';
+
+  const editActions = readOnly ? '' : `
+    <div class="widget-actions">
+      ${viewBtn}
+      ${w.type === 'rss' ? `<button class="btn btn-ghost btn-sm" onclick="openRSSSettings(${w.id})" title="Parametres RSS">&#9998;</button>` : ''}
+      ${w.type === 'weather' ? `<button class="btn btn-ghost btn-sm" onclick="editWeatherCity(${w.id})" title="Modifier la ville">&#9998;</button>` : ''}
+      ${w.type === 'search' ? `<button class="btn btn-ghost btn-sm" onclick="editSearchEngine(${w.id})" title="Modifier">&#9998;</button>` : ''}
+      ${w.type === 'embed' ? `<button class="btn btn-ghost btn-sm" onclick="editEmbedUrl(${w.id})" title="Modifier l'URL">&#9998;</button>` : ''}
+      ${w.type === 'clock' ? `<button class="btn btn-ghost btn-sm" onclick="editClockConfig(${w.id})" title="Modifier">&#9998;</button>` : ''}
+      ${w.type === 'ai' ? `<button class="btn btn-ghost btn-sm" onclick="editAIConfig(${w.id})" title="Configurer l'IA">&#9998;</button>` : ''}
+      ${w.type === 'ai' ? `<button class="btn btn-ghost btn-sm" onclick="clearAIChat(${w.id})" title="Effacer la conversation">&#128465;</button>` : ''}
+      <button class="btn btn-ghost btn-sm" onclick="deleteWidget(${w.id})" title="Supprimer">×</button>
+    </div>`;
+
+  return `
+    <div class="widget" data-widget-id="${w.id}" data-widget-type="${w.type}">
+      <div class="widget-header">
+        <span class="widget-title" ${readOnly ? '' : `ondblclick="renameWidget(${w.id})"`}>${esc(w.title)}</span>
+        ${editActions}
+      </div>
+      <div class="widget-body">${body}</div>
+    </div>
+  `;
+}
+
+// ─── Sortable (drag & drop) ──────────────────────────
+function destroySortables() {
+  sortableInstances.forEach(s => s.destroy());
+  sortableInstances = [];
+}
+
+function initSortables() {
+  // Column reordering
+  const colContainer = document.getElementById('columns-sortable');
+  if (colContainer) {
+    const cs = new Sortable(colContainer, {
+      animation: 200, handle: '[data-drag-col]',
+      ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+      direction: 'horizontal',
+      onEnd: async () => {
+        const order = [...colContainer.children].filter(el => el.dataset.colId).map(el => parseInt(el.dataset.colId));
+        await api(`/pages/${activePageId}/columns/reorder`, { method: 'PUT', body: { order } });
+        await loadDashboard();
+      }
+    });
+    sortableInstances.push(cs);
+  }
+
+  // Widget sorting within columns
+  document.querySelectorAll('.widgets-container').forEach(container => {
+    const s = new Sortable(container, {
+      group: 'widgets', animation: 200, handle: '.widget-header',
+      ghostClass: 'sortable-ghost', dragClass: 'sortable-drag',
+      onEnd: async (evt) => {
+        const widgetId = parseInt(evt.item.dataset.widgetId);
+        const targetColId = parseInt(evt.to.dataset.colId);
+        const order = [...evt.to.children].filter(el => el.dataset.widgetId).map(el => parseInt(el.dataset.widgetId));
+        await api('/widgets/move', { method: 'PUT', body: { widgetId, targetColumnId: targetColId, order } });
+        await loadDashboard();
+      }
+    });
+    sortableInstances.push(s);
+  });
+
+  document.querySelectorAll('.bookmarks-grid').forEach(grid => {
+    const s = new Sortable(grid, {
+      group: 'bookmarks', animation: 200, filter: '.bookmark-add',
+      ghostClass: 'sortable-ghost',
+      onEnd: async (evt) => {
+        const bmId = parseInt(evt.item.dataset.bmId);
+        const targetWidgetId = parseInt(evt.to.dataset.widgetId);
+        const order = [...evt.to.children].filter(el => el.dataset.bmId).map(el => parseInt(el.dataset.bmId));
+        if (evt.from.dataset.widgetId !== evt.to.dataset.widgetId) {
+          await api('/bookmarks/move', { method: 'PUT', body: { bookmarkId: bmId, targetWidgetId, order } });
+        } else {
+          await api('/bookmarks/reorder', { method: 'PUT', body: { order } });
+        }
+        await loadDashboard();
+      }
+    });
+    sortableInstances.push(s);
+  });
+}
+
+// ─── Column resize ───────────────────────────────────
+function colWidth(w) {
+  if (!w || w <= 10) return (w || 1) * 300;
+  return w;
+}
+
+let resizing = null;
+
+function startColResize(e, colId) {
+  e.preventDefault();
+  const colEl = document.querySelector(`.column[data-col-id="${colId}"]`);
+  if (!colEl) return;
+  const startX = e.clientX;
+  const startWidth = colEl.offsetWidth;
+  colEl.classList.add('resizing');
+  document.body.classList.add('col-resizing');
+
+  function onMove(ev) {
+    const delta = ev.clientX - startX;
+    const newWidth = Math.max(200, Math.min(800, startWidth + delta));
+    colEl.style.width = newWidth + 'px';
+  }
+
+  function onUp(ev) {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    colEl.classList.remove('resizing');
+    document.body.classList.remove('col-resizing');
+    const finalWidth = colEl.offsetWidth;
+    api(`/columns/${colId}`, { method: 'PUT', body: { width: finalWidth } });
+    const page = dashboard.find(p => p.id === activePageId);
+    if (page) {
+      const col = page.columns.find(c => c.id === colId);
+      if (col) col.width = finalWidth;
+    }
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ─── Widget resize (vertical) ────────────────────────
+
+function widgetPageNav(widgetId, dir) {
+  const w = findWidget(widgetId);
+  if (!w) return;
+  const cur = getWidgetPage(widgetId);
+  widgetPages[widgetId] = Math.max(0, cur + dir);
+
+  if (w.type === 'bookmarks') {
+    applyBookmarkPagination();
+  } else if (w.type === 'rss') {
+    const container = document.getElementById(`rss-${widgetId}`);
+    if (container && container._allItems) {
+      renderRSSPage(widgetId, container, container._allItems);
+    }
+  }
+}
+
+function initSortableForWidget(widgetId) {
+  const grid = document.querySelector(`.bookmarks-grid[data-widget-id="${widgetId}"]`);
+  if (!grid) return;
+  const s = new Sortable(grid, {
+    group: 'bookmarks', animation: 200, filter: '.bookmark-add',
+    ghostClass: 'sortable-ghost',
+    onEnd: async (evt) => {
+      const bmId = parseInt(evt.item.dataset.bmId);
+      const targetWidgetId = parseInt(evt.to.dataset.widgetId);
+      const order = [...evt.to.children].filter(el => el.dataset.bmId).map(el => parseInt(el.dataset.bmId));
+      if (evt.from.dataset.widgetId !== evt.to.dataset.widgetId) {
+        await api('/bookmarks/move', { method: 'PUT', body: { bookmarkId: bmId, targetWidgetId, order } });
+      } else {
+        await api('/bookmarks/reorder', { method: 'PUT', body: { order } });
+      }
+      await loadDashboard();
+    }
+  });
+  sortableInstances.push(s);
+}
+
+// ─── Columns ──────────────────────────────────────────
+function addColumn() {
+  showModal('Nouvelle colonne', `
+    <div class="form-group">
+      <label>Type de contenu</label>
+      <div id="col-type-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px">
+        <div class="col-type-card" data-type="bookmarks" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--accent);border-radius:8px;cursor:pointer;text-align:center;background:rgba(233,75,46,0.08)">
+          <div style="font-size:24px;margin-bottom:4px">⭐</div>
+          <div style="font-size:13px;font-weight:600">Favoris</div>
+          <div style="font-size:11px;color:var(--text-muted)">Grille de liens</div>
+        </div>
+        <div class="col-type-card" data-type="rss" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
+          <div style="font-size:24px;margin-bottom:4px">📰</div>
+          <div style="font-size:13px;font-weight:600">Actualites</div>
+          <div style="font-size:11px;color:var(--text-muted)">Flux RSS en direct</div>
+        </div>
+        <div class="col-type-card" data-type="notes" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
+          <div style="font-size:24px;margin-bottom:4px">📝</div>
+          <div style="font-size:13px;font-weight:600">Notes</div>
+          <div style="font-size:11px;color:var(--text-muted)">Texte libre</div>
+        </div>
+        <div class="col-type-card" data-type="weather" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
+          <div style="font-size:24px;margin-bottom:4px">🌤️</div>
+          <div style="font-size:13px;font-weight:600">Meteo</div>
+          <div style="font-size:11px;color:var(--text-muted)">Previsions locales</div>
+        </div>
+        <div class="col-type-card" data-type="clock" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
+          <div style="font-size:24px;margin-bottom:4px">🕐</div>
+          <div style="font-size:13px;font-weight:600">Horloge</div>
+          <div style="font-size:11px;color:var(--text-muted)">Heure en direct</div>
+        </div>
+        <div class="col-type-card" data-type="search" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
+          <div style="font-size:24px;margin-bottom:4px">🔍</div>
+          <div style="font-size:13px;font-weight:600">Recherche</div>
+          <div style="font-size:11px;color:var(--text-muted)">Barre de recherche</div>
+        </div>
+        <div class="col-type-card" data-type="embed" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
+          <div style="font-size:24px;margin-bottom:4px">🖼️</div>
+          <div style="font-size:13px;font-weight:600">Embed</div>
+          <div style="font-size:11px;color:var(--text-muted)">iFrame externe</div>
+        </div>
+        <div class="col-type-card" data-type="ai" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
+          <div style="font-size:24px;margin-bottom:4px">🤖</div>
+          <div style="font-size:13px;font-weight:600">IA Chat</div>
+          <div style="font-size:11px;color:var(--text-muted)">Mistral, OpenAI, Anthropic</div>
+        </div>
+        <div class="col-type-card" data-type="empty" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
+          <div style="font-size:24px;margin-bottom:4px">📦</div>
+          <div style="font-size:13px;font-weight:600">Vide</div>
+          <div style="font-size:11px;color:var(--text-muted)">A remplir plus tard</div>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Nom de la colonne</label>
+      <input type="text" id="col-title" placeholder="Ma colonne" required>
+    </div>
+    <div id="col-extra-fields"></div>
+    <input type="hidden" id="col-widget-type" value="bookmarks">
+  `, async () => {
+    const title = document.getElementById('col-title').value || 'Nouvelle colonne';
+    const type = document.getElementById('col-widget-type').value;
+    const col = await api(`/pages/${activePageId}/columns`, { method: 'POST', body: { title } });
+    if (type !== 'empty') {
+      const config = {};
+      const wTitle = title;
+      if (type === 'rss') { const u = document.getElementById('col-rss-url')?.value || ''; if (u) config.feeds = [{ url: u, title: '' }]; }
+      if (type === 'weather') config.city = document.getElementById('col-weather-city')?.value || '';
+      if (type === 'clock') { config.timezone = document.getElementById('col-clock-tz')?.value || ''; config.format24h = true; }
+      if (type === 'search') config.engine = document.getElementById('col-search-engine')?.value || 'google';
+      if (type === 'embed') { config.url = document.getElementById('col-embed-url')?.value || ''; config.height = 300; }
+      if (type === 'ai') { config.provider = document.getElementById('col-ai-provider')?.value || 'mistral'; config.apiKey = document.getElementById('col-ai-key')?.value || ''; config.model = document.getElementById('col-ai-model')?.value || ''; }
+      await api(`/columns/${col.id}/widgets`, { method: 'POST', body: { type, title: wTitle, config } });
+    }
+    closeModal();
+    await loadDashboard();
+  });
+  updateColTypeSelection('bookmarks');
+}
+
+function selectColType(el) {
+  const type = el.dataset.type;
+  document.getElementById('col-widget-type').value = type;
+  document.querySelectorAll('.col-type-card').forEach(c => {
+    c.style.borderColor = 'var(--border)';
+    c.style.background = 'transparent';
+  });
+  el.style.borderColor = 'var(--accent)';
+  el.style.background = 'rgba(233,75,46,0.08)';
+  updateColTypeSelection(type);
+}
+
+function updateColTypeSelection(type) {
+  const defaults = { bookmarks:'Mes favoris', rss:'Actualites', notes:'Notes', weather:'Meteo', clock:'Horloge', search:'Recherche', embed:'Embed', ai:'Assistant IA', empty:'Nouvelle colonne' };
+  const titleInput = document.getElementById('col-title');
+  if (titleInput && (!titleInput.value || Object.values(defaults).includes(titleInput.value))) {
+    titleInput.value = defaults[type] || '';
+  }
+  const extra = document.getElementById('col-extra-fields');
+  if (!extra) return;
+  let html = '';
+  if (type === 'rss') {
+    html = '<div class="form-group"><label>URL du flux RSS</label><input type="url" id="col-rss-url" placeholder="https://example.com/feed.xml"></div>';
+  } else if (type === 'weather') {
+    html = '<div class="form-group"><label>Ville</label><input type="text" id="col-weather-city" placeholder="Paris"></div>';
+  } else if (type === 'clock') {
+    html = '<div class="form-group"><label>Fuseau horaire (optionnel)</label><input type="text" id="col-clock-tz" placeholder="Europe/Paris"><div style="font-size:11px;color:var(--text-muted);margin-top:4px">Laisser vide = heure locale</div></div>';
+  } else if (type === 'search') {
+    html = '<div class="form-group"><label>Moteur</label><select id="col-search-engine"><option value="google">Google</option><option value="duckduckgo">DuckDuckGo</option><option value="bing">Bing</option></select></div>';
+  } else if (type === 'embed') {
+    html = '<div class="form-group"><label>URL a integrer</label><input type="url" id="col-embed-url" placeholder="https://example.com"></div>';
+  } else if (type === 'ai') {
+    html = `<div class="form-group"><label>Provider</label><select id="col-ai-provider"><option value="mistral">Mistral</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select></div>
+    <div class="form-group"><label>Cle API</label><input type="password" id="col-ai-key" placeholder="Votre cle API"></div>
+    <div class="form-group"><label>Modele (optionnel)</label><input type="text" id="col-ai-model" placeholder="Laisser vide = modele par defaut"></div>`;
+  }
+  extra.innerHTML = html;
+}
+
+async function renameColumn(colId) {
+  const page = dashboard.find(p => p.id === activePageId);
+  const col = page?.columns.find(c => c.id === colId);
+  const title = prompt('Nouveau nom :', col?.title);
+  if (!title) return;
+  await api(`/columns/${colId}`, { method: 'PUT', body: { title } });
+  col.title = title;
+  renderPage();
+}
+
+async function deleteColumn(colId) {
+  if (!confirm('Supprimer cette colonne et tout son contenu ?')) return;
+  await api(`/columns/${colId}`, { method: 'DELETE' });
+  await loadDashboard();
+}
+
+// ─── Widgets ──────────────────────────────────────────
+function addWidget(colId) {
+  showModal('Ajouter un widget', `
+    <div class="form-group">
+      <label>Type</label>
+      <select id="widget-type">
+        <option value="bookmarks">Favoris</option>
+        <option value="rss">Flux RSS</option>
+        <option value="notes">Notes</option>
+        <option value="weather">Meteo</option>
+        <option value="clock">Horloge</option>
+        <option value="search">Recherche</option>
+        <option value="embed">Embed / iFrame</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Titre</label>
+      <input type="text" id="widget-title" placeholder="Mon widget" required>
+    </div>
+    <div class="form-group hidden" id="rss-url-group">
+      <label>URL du flux RSS</label>
+      <input type="url" id="widget-rss-url" placeholder="https://example.com/feed.xml">
+    </div>
+    <div class="form-group hidden" id="weather-city-group">
+      <label>Ville</label>
+      <input type="text" id="widget-weather-city" placeholder="Paris">
+    </div>
+    <div class="form-group hidden" id="clock-tz-group">
+      <label>Fuseau horaire (optionnel)</label>
+      <input type="text" id="widget-clock-tz" placeholder="Europe/Paris">
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Laisser vide = heure locale</div>
+    </div>
+    <div class="form-group hidden" id="search-engine-group">
+      <label>Moteur de recherche</label>
+      <select id="widget-search-engine">
+        <option value="google">Google</option>
+        <option value="duckduckgo">DuckDuckGo</option>
+        <option value="bing">Bing</option>
+        <option value="custom">Personnalise</option>
+      </select>
+    </div>
+    <div class="form-group hidden" id="search-custom-group">
+      <label>URL personnalisee (utiliser %s pour la requete)</label>
+      <input type="url" id="widget-search-custom" placeholder="https://example.com/search?q=%s">
+    </div>
+    <div class="form-group hidden" id="embed-url-group">
+      <label>URL a integrer</label>
+      <input type="url" id="widget-embed-url" placeholder="https://example.com">
+    </div>
+    <div class="form-group hidden" id="embed-height-group">
+      <label>Hauteur (px)</label>
+      <input type="number" id="widget-embed-height" value="300" min="100" max="800">
+    </div>
+  `, async () => {
+    const type = document.getElementById('widget-type').value;
+    const title = document.getElementById('widget-title').value || 'Sans titre';
+    const config = {};
+    if (type === 'rss') { const u = document.getElementById('widget-rss-url').value; if (u) config.feeds = [{ url: u, title: '' }]; }
+    if (type === 'weather') config.city = document.getElementById('widget-weather-city').value;
+    if (type === 'clock') {
+      config.timezone = document.getElementById('widget-clock-tz').value;
+      config.format24h = true;
+    }
+    if (type === 'search') {
+      config.engine = document.getElementById('widget-search-engine').value;
+      config.customUrl = document.getElementById('widget-search-custom').value;
+    }
+    if (type === 'embed') {
+      config.url = document.getElementById('widget-embed-url').value;
+      config.height = parseInt(document.getElementById('widget-embed-height').value) || 300;
+    }
+    await api(`/columns/${colId}/widgets`, { method: 'POST', body: { type, title, config } });
+    closeModal();
+    await loadDashboard();
+  });
+
+  const typeSelect = document.getElementById('widget-type');
+  function updateWidgetFields() {
+    const v = typeSelect.value;
+    document.getElementById('rss-url-group').classList.toggle('hidden', v !== 'rss');
+    document.getElementById('weather-city-group').classList.toggle('hidden', v !== 'weather');
+    document.getElementById('clock-tz-group').classList.toggle('hidden', v !== 'clock');
+    document.getElementById('search-engine-group').classList.toggle('hidden', v !== 'search');
+    document.getElementById('search-custom-group').classList.toggle('hidden', v !== 'search' || document.getElementById('widget-search-engine').value !== 'custom');
+    document.getElementById('embed-url-group').classList.toggle('hidden', v !== 'embed');
+    document.getElementById('embed-height-group').classList.toggle('hidden', v !== 'embed');
+  }
+  typeSelect.addEventListener('change', updateWidgetFields);
+
+  const searchEngSel = document.getElementById('widget-search-engine');
+  if (searchEngSel) searchEngSel.addEventListener('change', () => {
+    document.getElementById('search-custom-group').classList.toggle('hidden', searchEngSel.value !== 'custom');
+  });
+}
+
+async function renameWidget(widgetId) {
+  const title = prompt('Nouveau titre :');
+  if (!title) return;
+  await api(`/widgets/${widgetId}`, { method: 'PUT', body: { title } });
+  await loadDashboard();
+}
+
+async function deleteWidget(widgetId) {
+  if (!confirm('Supprimer ce widget ?')) return;
+  await api(`/widgets/${widgetId}`, { method: 'DELETE' });
+  await loadDashboard();
+}
+
+function getRSSFeeds(w) {
+  if (w?.config?.feeds?.length) return w.config.feeds;
+  if (w?.config?.url) return [{ url: w.config.url, title: '' }];
+  return [];
+}
+
+function getRSSDisplaySettings(w) {
+  return {
+    articleCount: w?.config?.articleCount ?? 30,
+    summaries: w?.config?.summaries ?? 'first',
+    images: w?.config?.images ?? 'small',
+    truncateTitles: w?.config?.truncateTitles ?? false,
+    showTimestamps: w?.config?.showTimestamps ?? true,
+    showPagination: w?.config?.showPagination ?? true,
+  };
+}
+
+function feedFavicon(url) {
+  try { const u = new URL(url); return 'https://www.google.com/s2/favicons?sz=32&domain=' + u.hostname; }
+  catch { return ''; }
+}
+
+let _rssSettingsWidgetId = null;
+
+function openRSSSettings(widgetId) {
+  _rssSettingsWidgetId = widgetId;
+  const w = findWidget(widgetId);
+  const feeds = getRSSFeeds(w);
+  const ds = getRSSDisplaySettings(w);
+
+  const feedListHTML = feeds.map((f, i) => rssSettingsFeedItem(f, i)).join('');
+
+  const toggleHTML = (id, label, checked) =>
+    '<div class="setting-toggle"><span>' + label + '</span><label class="toggle-switch"><input type="checkbox" id="' + id + '"' + (checked ? ' checked' : '') + '><span class="toggle-slider"></span></label></div>';
+
+  showModal('Parametres RSS', '<div class="rss-settings-tabs">' +
+    '<button class="rss-tab active" onclick="switchRSSTab(\'feeds\')">Flux RSS</button>' +
+    '<button class="rss-tab" onclick="switchRSSTab(\'display\')">Affichage</button>' +
+    '</div>' +
+    '<div class="rss-tab-content active" id="rss-tab-feeds">' +
+      '<div class="rss-feed-list" id="rss-feed-list">' + feedListHTML + '</div>' +
+      '<button class="rss-add-feed" onclick="addRSSFeedRow()">+ Ajouter un nouveau flux RSS</button>' +
+    '</div>' +
+    '<div class="rss-tab-content" id="rss-tab-display">' +
+      '<div class="setting-section"><div class="setting-label">Nombre d\'articles a afficher</div>' +
+        '<select id="rss-set-count">' +
+        [5,10,15,20,30].map(n => '<option value="'+n+'"'+(ds.articleCount===n?' selected':'')+'>'+n+' articles</option>').join('') +
+        '</select></div>' +
+      '<div class="setting-section"><div class="setting-label">Afficher les sommaires de</div>' +
+        '<select id="rss-set-summaries">' +
+        '<option value="first"'+(ds.summaries==='first'?' selected':'')+'>Seulement le premier article</option>' +
+        '<option value="all"'+(ds.summaries==='all'?' selected':'')+'>Tous les articles</option>' +
+        '<option value="none"'+(ds.summaries==='none'?' selected':'')+'>Aucun</option>' +
+        '</select></div>' +
+      '<div class="setting-section"><div class="setting-label">Afficher les images</div>' +
+        '<select id="rss-set-images">' +
+        '<option value="large"'+(ds.images==='large'?' selected':'')+'>Grandes images</option>' +
+        '<option value="small"'+(ds.images==='small'?' selected':'')+'>Petites images</option>' +
+        '<option value="none"'+(ds.images==='none'?' selected':'')+'>Aucune</option>' +
+        '</select></div>' +
+      toggleHTML('rss-set-truncate', 'Tronquer les titres', ds.truncateTitles) +
+      toggleHTML('rss-set-timestamps', 'Afficher les horodatages', ds.showTimestamps) +
+      toggleHTML('rss-set-pagination', 'Afficher les boutons de pagination', ds.showPagination) +
+      '<button class="setting-apply-all" onclick="applyRSSSettingsToAll()">Appliquer a tous les widgets de cette page</button>' +
+    '</div>'
+  , saveRSSSettings);
+  initRSSFeedSortable();
+}
+
+function rssSettingsFeedItem(f, idx) {
+  const fav = feedFavicon(f.url);
+  const title = f.title || domainFromUrl(f.url);
+  return '<div class="rss-feed-item" data-feed-idx="'+idx+'">' +
+    '<span class="rss-feed-handle">&#x2630;</span>' +
+    (fav ? '<img class="rss-feed-icon" src="'+esc(fav)+'" onerror="this.style.display=\'none\'">' : '') +
+    '<div class="rss-feed-info"><div class="rss-feed-title">'+esc(title)+'</div><div class="rss-feed-url">'+esc(f.url)+'</div></div>' +
+    '<button class="rss-feed-del" onclick="removeRSSFeedRow(this)" title="Supprimer">&times;</button>' +
+    '</div>';
+}
+
+function domainFromUrl(url) {
+  try { return new URL(url).hostname.replace('www.',''); } catch { return url; }
+}
+
+function switchRSSTab(tab) {
+  document.querySelectorAll('.rss-tab').forEach((t,i) => {
+    t.classList.toggle('active', (tab==='feeds' && i===0) || (tab==='display' && i===1));
+  });
+  document.getElementById('rss-tab-feeds').classList.toggle('active', tab==='feeds');
+  document.getElementById('rss-tab-display').classList.toggle('active', tab==='display');
+}
+
+function addRSSFeedRow() {
+  const url = prompt('URL du flux RSS :');
+  if (!url) return;
+  const title = domainFromUrl(url);
+  const list = document.getElementById('rss-feed-list');
+  const idx = list.children.length;
+  list.insertAdjacentHTML('beforeend', rssSettingsFeedItem({ url, title }, idx));
+  initRSSFeedSortable();
+}
+
+function removeRSSFeedRow(btn) {
+  btn.closest('.rss-feed-item').remove();
+}
+
+function initRSSFeedSortable() {
+  const list = document.getElementById('rss-feed-list');
+  if (!list || list._sortable) return;
+  list._sortable = new Sortable(list, { animation: 200, handle: '.rss-feed-handle', ghostClass: 'sortable-ghost' });
+}
+
+function collectRSSFeeds() {
+  const items = document.querySelectorAll('#rss-feed-list .rss-feed-item');
+  return Array.from(items).map(el => ({
+    url: el.querySelector('.rss-feed-url')?.textContent || '',
+    title: el.querySelector('.rss-feed-title')?.textContent || ''
+  })).filter(f => f.url);
+}
+
+function collectRSSDisplaySettings() {
+  return {
+    articleCount: parseInt(document.getElementById('rss-set-count')?.value) || 30,
+    summaries: document.getElementById('rss-set-summaries')?.value || 'first',
+    images: document.getElementById('rss-set-images')?.value || 'small',
+    truncateTitles: document.getElementById('rss-set-truncate')?.checked ?? false,
+    showTimestamps: document.getElementById('rss-set-timestamps')?.checked ?? true,
+    showPagination: document.getElementById('rss-set-pagination')?.checked ?? true,
+  };
+}
+
+async function saveRSSSettings() {
+  const widgetId = _rssSettingsWidgetId;
+  const feeds = collectRSSFeeds();
+  const ds = collectRSSDisplaySettings();
+  const config = { feeds, ...ds };
+  await api('/widgets/' + widgetId, { method: 'PUT', body: { config } });
+  closeModal();
+  await loadDashboard();
+}
+
+async function applyRSSSettingsToAll() {
+  const ds = collectRSSDisplaySettings();
+  const page = dashboard.find(p => p.id === activePageId);
+  if (!page) return;
+  for (const col of page.columns) {
+    for (const w of col.widgets) {
+      if (w.type === 'rss') {
+        const feeds = getRSSFeeds(w);
+        await api('/widgets/' + w.id, { method: 'PUT', body: { config: { feeds, ...ds } } });
+      }
+    }
+  }
+  toast('Parametres appliques a tous les widgets RSS');
+  closeModal();
+  await loadDashboard();
+}
+
+async function editWeatherCity(widgetId) {
+  const w = findWidget(widgetId);
+  const city = prompt('Ville :', w?.config?.city || '');
+  if (city === null) return;
+  await api(`/widgets/${widgetId}`, { method: 'PUT', body: { config: { ...w.config, city } } });
+  await loadDashboard();
+}
+
+async function editSearchEngine(widgetId) {
+  const w = findWidget(widgetId);
+  showModal('Modifier la recherche', `
+    <div class="form-group">
+      <label>Moteur de recherche</label>
+      <select id="edit-search-engine">
+        <option value="google" ${w?.config?.engine === 'google' ? 'selected' : ''}>Google</option>
+        <option value="duckduckgo" ${w?.config?.engine === 'duckduckgo' ? 'selected' : ''}>DuckDuckGo</option>
+        <option value="bing" ${w?.config?.engine === 'bing' ? 'selected' : ''}>Bing</option>
+        <option value="custom" ${w?.config?.engine === 'custom' ? 'selected' : ''}>Personnalise</option>
+      </select>
+    </div>
+    <div class="form-group" id="edit-custom-url-group" ${w?.config?.engine !== 'custom' ? 'style="display:none"' : ''}>
+      <label>URL personnalisee (%s = requete)</label>
+      <input type="url" id="edit-search-custom" value="${esc(w?.config?.customUrl || '')}">
+    </div>
+  `, async () => {
+    const engine = document.getElementById('edit-search-engine').value;
+    const customUrl = document.getElementById('edit-search-custom').value;
+    await api(`/widgets/${widgetId}`, { method: 'PUT', body: { config: { engine, customUrl } } });
+    closeModal();
+    await loadDashboard();
+  });
+  document.getElementById('edit-search-engine').addEventListener('change', (e) => {
+    document.getElementById('edit-custom-url-group').style.display = e.target.value === 'custom' ? '' : 'none';
+  });
+}
+
+async function editEmbedUrl(widgetId) {
+  const w = findWidget(widgetId);
+  showModal('Modifier l\'embed', `
+    <div class="form-group">
+      <label>URL</label>
+      <input type="url" id="edit-embed-url" value="${esc(w?.config?.url || '')}">
+    </div>
+    <div class="form-group">
+      <label>Hauteur (px)</label>
+      <input type="number" id="edit-embed-height" value="${w?.config?.height || 300}" min="100" max="800">
+    </div>
+  `, async () => {
+    const url = document.getElementById('edit-embed-url').value;
+    const height = parseInt(document.getElementById('edit-embed-height').value) || 300;
+    await api(`/widgets/${widgetId}`, { method: 'PUT', body: { config: { url, height } } });
+    closeModal();
+    await loadDashboard();
+  });
+}
+
+async function editClockConfig(widgetId) {
+  const w = findWidget(widgetId);
+  showModal('Modifier l\'horloge', `
+    <div class="form-group">
+      <label>Fuseau horaire</label>
+      <input type="text" id="edit-clock-tz" value="${esc(w?.config?.timezone || '')}" placeholder="Europe/Paris">
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Laisser vide = heure locale</div>
+    </div>
+    <div class="form-group">
+      <label>Format</label>
+      <select id="edit-clock-format">
+        <option value="true" ${w?.config?.format24h !== false ? 'selected' : ''}>24 heures</option>
+        <option value="false" ${w?.config?.format24h === false ? 'selected' : ''}>12 heures (AM/PM)</option>
+      </select>
+    </div>
+  `, async () => {
+    const timezone = document.getElementById('edit-clock-tz').value;
+    const format24h = document.getElementById('edit-clock-format').value === 'true';
+    await api(`/widgets/${widgetId}`, { method: 'PUT', body: { config: { timezone, format24h } } });
+    closeModal();
+    await loadDashboard();
+  });
+}
+
+async function saveNotes(widgetId, content) {
+  await api(`/widgets/${widgetId}`, { method: 'PUT', body: { config: { content } } });
+}
+
+function findWidget(widgetId) {
+  const source = activeSharedPageId ? sharedPages : dashboard;
+  for (const p of source) {
+    for (const col of (p.columns || [])) {
+      const w = col.widgets.find(w => w.id === widgetId);
+      if (w) return w;
+    }
+  }
+  return null;
+}
+
+// ─── Bookmarks ────────────────────────────────────────
+function addBookmark(widgetId) {
+  showModal('Ajouter un favori', `
+    <div class="form-group">
+      <label>Titre</label>
+      <input type="text" id="bm-title" placeholder="Google" required>
+    </div>
+    <div class="form-group">
+      <label>URL</label>
+      <input type="url" id="bm-url" placeholder="https://google.com" required>
+    </div>
+    ${iconPickerHTML('')}
+  `, async () => {
+    const title = document.getElementById('bm-title').value;
+    const url = document.getElementById('bm-url').value;
+    const icon = document.getElementById('bm-icon-value').value;
+    if (!title || !url) return toast('Champs requis', 'error');
+    await api(`/widgets/${widgetId}/bookmarks`, { method: 'POST', body: { title, url, icon } });
+    closeModal();
+    await loadDashboard();
+  });
+  initIconPicker();
+}
+
+function editBookmark(widgetId, bmId) {
+  const w = findWidget(widgetId);
+  const bm = (w?.bookmarks || []).find(b => b.id === bmId);
+  if (!bm) return;
+
+  showModal('Modifier le favori', `
+    <div class="form-group">
+      <label>Titre</label>
+      <input type="text" id="bm-title" value="${esc(bm.title)}">
+    </div>
+    <div class="form-group">
+      <label>URL</label>
+      <input type="url" id="bm-url" value="${esc(bm.url)}">
+    </div>
+    ${iconPickerHTML(bm.icon || '')}
+    <div style="margin-top:12px">
+      <button class="btn btn-danger btn-sm" onclick="deleteBookmark(${bmId})">Supprimer ce favori</button>
+    </div>
+  `, async () => {
+    const title = document.getElementById('bm-title').value;
+    const url = document.getElementById('bm-url').value;
+    const icon = document.getElementById('bm-icon-value').value;
+    await api(`/bookmarks/${bmId}`, { method: 'PUT', body: { title, url, icon } });
+    closeModal();
+    await loadDashboard();
+  });
+  initIconPicker(bm.icon);
+}
+
+async function deleteBookmark(bmId) {
+  await api(`/bookmarks/${bmId}`, { method: 'DELETE' });
+  closeModal();
+  await loadDashboard();
+}
+
+// ─── RSS loading ──────────────────────────────────────
+function loadRSSFeeds(page) {
+  if (!page) page = activeSharedPageId ? sharedPages.find(p => p.id === activeSharedPageId) : dashboard.find(p => p.id === activePageId);
+  if (!page) return;
+  for (const col of page.columns) {
+    for (const w of col.widgets) {
+      if (w.type !== 'rss') continue;
+      const feeds = getRSSFeeds(w);
+      if (feeds.length > 0) loadMultiRSS(w.id, feeds);
+    }
+  }
+}
+
+function rssItemHTML(item, idx, ds) {
+  const date = item.pubDate ? new Date(item.pubDate) : null;
+  const dateStr = date ? date.toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  const fullDateStr = date ? date.toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+  const imgHtml = item.image ? '<img class="rss-item-img" src="' + esc(item.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '';
+  const snippet = item.contentSnippet || '';
+  const showSnippet = ds.summaries === 'all' || (ds.summaries === 'first' && idx === 0);
+  const snippetHtml = showSnippet && snippet ? '<div class="rss-item-snippet">' + esc(snippet.substring(0, 200)) + '</div>' : '';
+  const imgAttr = item.image ? ' data-rss-img="' + esc(item.image) + '"' : '';
+  const linkTarget = currentUser?.link_target || '_blank';
+  return '<a class="rss-item" href="' + esc(item.link) + '" target="' + linkTarget + '"' +
+    ' data-rss-title="' + esc(item.title) + '"' +
+    ' data-rss-snippet="' + esc(snippet) + '"' +
+    ' data-rss-date="' + esc(fullDateStr) + '"' + imgAttr +
+    ' onmouseenter="showRSSTooltip(event, this)"' +
+    ' onmousemove="moveRSSTooltip(event)"' +
+    ' onmouseleave="hideRSSTooltip()">' +
+    imgHtml +
+    '<div class="rss-item-content">' +
+      '<span class="rss-item-title">' + esc(item.title) + '</span>' +
+      snippetHtml +
+      '<span class="rss-item-date">' + dateStr + '</span>' +
+    '</div></a>';
+}
+
+function rssContainerClasses(ds) {
+  const cls = [];
+  if (ds.images === 'none') cls.push('img-none');
+  else if (ds.images === 'large') cls.push('img-large');
+  else if (ds.images === 'small') cls.push('img-small');
+  if (!ds.showTimestamps) cls.push('no-timestamps');
+  if (ds.truncateTitles) cls.push('truncate-titles');
+  return cls.join(' ');
+}
+
+function rssPerPage(ds) {
+  if (ds.images === 'large') return 5;
+  if (ds.images === 'none') return 15;
+  return 10;
+}
+
+function renderRSSPage(widgetId, container, allItems) {
+  const w = findWidget(widgetId);
+  const ds = getRSSDisplaySettings(w);
+  const limited = allItems.slice(0, ds.articleCount || 30);
+  const perPage = rssPerPage(ds);
+  const needsPaging = ds.showPagination && limited.length > perPage;
+  const page = getWidgetPage(widgetId);
+  const totalPages = needsPaging ? Math.ceil(limited.length / perPage) : 1;
+  const items = needsPaging ? limited.slice(page * perPage, (page + 1) * perPage) : limited;
+
+  container.className = 'rss-items ' + rssContainerClasses(ds);
+
+  let html = items.map((it, i) => rssItemHTML(it, needsPaging ? page * perPage + i : i, ds)).join('');
+  if (!html) html = '<div style="padding:12px;color:var(--text-muted);font-size:13px;">Aucun article</div>';
+  if (needsPaging) {
+    html += '<div class="widget-pagination">' +
+      '<button onclick="widgetPageNav(' + widgetId + ',-1)"' + (page === 0 ? ' disabled' : '') + '>&#9664;</button>' +
+      '<span>' + (page + 1) + ' / ' + totalPages + '</span>' +
+      '<button onclick="widgetPageNav(' + widgetId + ',1)"' + (page >= totalPages - 1 ? ' disabled' : '') + '>&#9654;</button>' +
+      '</div>';
+  }
+  container.innerHTML = html;
+}
+
+async function loadMultiRSS(widgetId, feeds) {
+  const container = document.getElementById('rss-' + widgetId);
+  if (!container) return;
+  try {
+    const results = await Promise.all(feeds.map(f =>
+      api('/rss?url=' + encodeURIComponent(f.url)).catch(() => ({ items: [] }))
+    ));
+    let allItems = results.flatMap(r => r.items || []);
+    allItems.sort((a, b) => {
+      const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+      const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+      return db - da;
+    });
+    container._allItems = allItems;
+    renderRSSPage(widgetId, container, allItems);
+  } catch (err) {
+    container.innerHTML = '<div style="padding:12px;color:var(--danger);font-size:13px;">Erreur: ' + esc(err.message) + '</div>';
+  }
+}
+
+
+// ─── Weather ──────────────────────────────────────────
+function loadWeatherWidgets(page) {
+  if (!page) return;
+  for (const col of page.columns) {
+    for (const w of col.widgets) {
+      if (w.type === 'weather' && w.config?.city) loadSingleWeather(w.id, w.config.city);
+    }
+  }
+}
+
+async function loadSingleWeather(widgetId, city) {
+  const container = document.getElementById(`weather-${widgetId}`);
+  if (!container) return;
+  try {
+    const data = await api(`/weather?city=${encodeURIComponent(city)}`);
+    const grad = weatherGradient(data.weatherCode);
+    const svgIcon = weatherSVG(data.weatherCode, 64);
+
+    const uvVal = parseInt(data.uvIndex) || 0;
+    const uvLabel = uvVal <= 2 ? 'Faible' : uvVal <= 5 ? 'Moyen' : uvVal <= 7 ? 'Eleve' : 'Tres eleve';
+
+    let sunHtml = '';
+    if (data.sunrise || data.sunset) {
+      const sunSvg = '<svg viewBox="0 0 16 16" width="14" height="14"><circle cx="8" cy="10" r="4" fill="#f59e0b"/><line x1="8" y1="2" x2="8" y2="4" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><line x1="3" y1="5" x2="4.5" y2="6.5" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><line x1="13" y1="5" x2="11.5" y2="6.5" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="14" x2="15" y2="14" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/></svg>';
+      const moonSvg = '<svg viewBox="0 0 16 16" width="14" height="14"><path d="M10 2C6.7 2 4 4.7 4 8s2.7 6 6 6c1.2 0 2.3-.4 3.2-1-.6.2-1.3.3-2 .3C7.4 13.3 4.7 10.6 4.7 7.3c0-2.5 1.5-4.6 3.6-5.5C9 1.9 9.5 2 10 2z" fill="#94a3b8"/></svg>';
+      sunHtml = '<div class="weather-sun"><span>' + sunSvg + ' ' + esc(data.sunrise) + '</span><span>' + moonSvg + ' ' + esc(data.sunset) + '</span></div>';
+    }
+
+    let hourlyHtml = '';
+    if (data.hourly && data.hourly.length > 0) {
+      const nowH = new Date().getHours();
+      const futureHours = data.hourly.filter(function(h) {
+        return h.dayOffset > 0 || Math.floor(parseInt(h.time) / 100) >= nowH;
+      }).slice(0, 8);
+      if (futureHours.length > 0) {
+        hourlyHtml = '<div class="weather-hourly">' + futureHours.map(function(h) {
+          const hr = Math.floor(parseInt(h.time) / 100);
+          const label = (h.dayOffset > 0 ? 'Dem. ' : '') + (hr < 10 ? '0' : '') + hr + ':00';
+          return '<div class="weather-hourly-item">' +
+            '<div class="wh-time">' + label + '</div>' +
+            '<div class="wh-icon">' + weatherSVG(h.weatherCode, 24) + '</div>' +
+            '<div class="wh-temp">' + h.temp_C + '°</div>' +
+            (parseInt(h.chanceOfRain) > 0 ? '<div class="wh-rain">' + h.chanceOfRain + '%</div>' : '') +
+            '</div>';
+        }).join('') + '</div>';
+      }
+    }
+
+    let forecastHtml = '';
+    if (data.forecast && data.forecast.length > 0) {
+      forecastHtml = '<div class="weather-forecast-5d">' + data.forecast.map(function(d) {
+        const date = new Date(d.date);
+        const dayName = date.toLocaleDateString('fr-FR', { weekday: 'short' });
+        return '<div class="weather-forecast-day">' +
+          '<div class="wf-date">' + dayName + '</div>' +
+          '<div class="wf-icon">' + weatherSVG(d.weatherCode, 28) + '</div>' +
+          '<div class="wf-temps">' + d.minTemp_C + '° / ' + d.maxTemp_C + '°</div>' +
+          (parseInt(d.chanceOfRain) > 0 ? '<div class="wf-rain">' + d.chanceOfRain + '%</div>' : '') +
+          '</div>';
+      }).join('') + '</div>';
+    }
+
+    container.innerHTML =
+      '<div class="weather-widget" style="background:' + grad + '">' +
+        '<div class="weather-current">' +
+          '<div class="weather-svg-icon">' + svgIcon + '</div>' +
+          '<div>' +
+            '<div class="weather-temp">' + data.temp_C + '°C</div>' +
+            '<div class="weather-desc">' + esc(data.description) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="weather-info-grid">' +
+          '<div class="weather-info-item"><span class="wi-label">Ressenti</span><span class="wi-value">' + data.feels_like_C + '°C</span></div>' +
+          '<div class="weather-info-item"><span class="wi-label">Humidite</span><span class="wi-value">' + data.humidity + '%</span></div>' +
+          '<div class="weather-info-item"><span class="wi-label">Vent</span><span class="wi-value">' + windArrow(data.windDirection) + data.wind_kmph + ' km/h</span></div>' +
+          '<div class="weather-info-item"><span class="wi-label">UV</span><span class="wi-value">' + data.uvIndex + ' <span style="font-weight:400;font-size:10px;color:var(--text-muted)">' + uvLabel + '</span></span></div>' +
+          '<div class="weather-info-item"><span class="wi-label">Pluie</span><span class="wi-value">' + data.precipMM + ' mm</span></div>' +
+          '<div class="weather-info-item"><span class="wi-label">Pression</span><span class="wi-value">' + data.pressure + ' hPa</span></div>' +
+        '</div>' +
+        sunHtml +
+        hourlyHtml +
+        forecastHtml +
+        '<div class="weather-link"><a href="https://meteofrance.com/recherche/all?query=' + encodeURIComponent(city) + '" target="_blank" rel="noopener">Prévisions sur Météo France ↗</a></div>' +
+      '</div>';
+  } catch (err) {
+    container.innerHTML = '<div class="weather-error">Erreur: ' + esc(err.message) + '</div>';
+  }
+}
+
+function weatherType(code) {
+  const c = parseInt(code);
+  if (c === 113) return 'sunny';
+  if (c === 116) return 'partly';
+  if (c === 119 || c === 122) return 'cloudy';
+  if (c === 143 || c === 248 || c === 260) return 'fog';
+  if ([176,263,266,293,296,299,302,305,308,311,314,317,353,356,359].includes(c)) return 'rain';
+  if ([179,182,185,227,230,320,323,326,329,332,335,338,362,365,368,371,374,377].includes(c)) return 'snow';
+  if ([200,386,389,392,395].includes(c)) return 'storm';
+  return 'partly';
+}
+
+function weatherSVG(code, size) {
+  const s = size || 64;
+  const t = weatherType(code);
+  const cloud = '<path d="M20 28c-4.4 0-8-3.1-8-7s3.6-7 8-7c.5-4 4.2-7 8.5-7 4.7 0 8.5 3.5 8.5 8 0 .3 0 .7-.1 1C39.2 17.2 41 19.8 41 23c0 3.9-3.6 5-5 5H20z"';
+  if (t === 'sunny') return '<svg viewBox="0 0 48 48" width="'+s+'" height="'+s+'"><g transform="translate(24,24)"><g style="animation:weather-spin 12s linear infinite"><circle cx="0" cy="0" r="8" fill="#f59e0b"/><g stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round">' +
+    '<line x1="0" y1="-13" x2="0" y2="-18"/><line x1="0" y1="13" x2="0" y2="18"/><line x1="-13" y1="0" x2="-18" y2="0"/><line x1="13" y1="0" x2="18" y2="0"/>' +
+    '<line x1="-9.2" y1="-9.2" x2="-12.7" y2="-12.7"/><line x1="9.2" y1="-9.2" x2="12.7" y2="-12.7"/><line x1="-9.2" y1="9.2" x2="-12.7" y2="12.7"/><line x1="9.2" y1="9.2" x2="12.7" y2="12.7"/>' +
+    '</g></g></g></svg>';
+  if (t === 'partly') return '<svg viewBox="0 0 48 48" width="'+s+'" height="'+s+'"><g style="animation:weather-spin 12s linear infinite;transform-origin:14px 14px"><circle cx="14" cy="14" r="7" fill="#f59e0b"/><g stroke="#f59e0b" stroke-width="2" stroke-linecap="round">' +
+    '<line x1="14" y1="3" x2="14" y2="0"/><line x1="14" y1="25" x2="14" y2="28"/><line x1="3" y1="14" x2="0" y2="14"/><line x1="25" y1="14" x2="28" y2="14"/>' +
+    '<line x1="6.2" y1="6.2" x2="4" y2="4"/><line x1="21.8" y1="6.2" x2="24" y2="4"/>' +
+    '</g></g>' + cloud + ' fill="#94a3b8" style="animation:weather-float 4s ease-in-out infinite"/></svg>';
+  if (t === 'cloudy') return '<svg viewBox="0 0 48 48" width="'+s+'" height="'+s+'"><path d="M14 24c-3 0-5.5-2-5.5-5s2.5-5 5.5-5c.4-3 3-5 6-5s5.5 2.5 5.5 5.5v.5c1.5.5 2.5 2 2.5 4 0 2.5-2 5-4 5H14z" fill="#64748b" style="animation:weather-float 5s ease-in-out infinite"/>' +
+    cloud + ' fill="#94a3b8" style="animation:weather-float 4s ease-in-out infinite;animation-delay:-1.5s"/></svg>';
+  if (t === 'fog') return '<svg viewBox="0 0 48 48" width="'+s+'" height="'+s+'">' + cloud + ' fill="#94a3b8"/>' +
+    '<g stroke="#94a3b8" stroke-width="2" stroke-linecap="round" style="animation:weather-fog 3s ease-in-out infinite">' +
+    '<line x1="12" y1="32" x2="36" y2="32"/><line x1="14" y1="36" x2="34" y2="36"/><line x1="16" y1="40" x2="32" y2="40"/></g></svg>';
+  if (t === 'rain') return '<svg viewBox="0 0 48 48" width="'+s+'" height="'+s+'">' + cloud + ' fill="#94a3b8" style="animation:weather-float 4s ease-in-out infinite"/>' +
+    '<g fill="#38bdf8">' +
+    '<circle cx="20" cy="34" r="1.3" style="animation:weather-rain 1s ease-in infinite"/>' +
+    '<circle cx="26" cy="36" r="1.3" style="animation:weather-rain 1s ease-in infinite;animation-delay:0.3s"/>' +
+    '<circle cx="32" cy="33" r="1.3" style="animation:weather-rain 1s ease-in infinite;animation-delay:0.6s"/>' +
+    '<circle cx="23" cy="38" r="1.3" style="animation:weather-rain 1s ease-in infinite;animation-delay:0.15s"/>' +
+    '<circle cx="29" cy="39" r="1.3" style="animation:weather-rain 1s ease-in infinite;animation-delay:0.45s"/>' +
+    '</g></svg>';
+  if (t === 'snow') return '<svg viewBox="0 0 48 48" width="'+s+'" height="'+s+'">' + cloud + ' fill="#94a3b8" style="animation:weather-float 4s ease-in-out infinite"/>' +
+    '<g fill="#e2e8f0">' +
+    '<circle cx="20" cy="34" r="1.5" style="animation:weather-snow 2s ease-in infinite"/>' +
+    '<circle cx="27" cy="36" r="1.5" style="animation:weather-snow 2s ease-in infinite;animation-delay:0.5s"/>' +
+    '<circle cx="33" cy="33" r="1.5" style="animation:weather-snow 2s ease-in infinite;animation-delay:1s"/>' +
+    '<circle cx="23" cy="39" r="1.5" style="animation:weather-snow 2s ease-in infinite;animation-delay:0.3s"/>' +
+    '<circle cx="30" cy="40" r="1.5" style="animation:weather-snow 2s ease-in infinite;animation-delay:0.8s"/>' +
+    '</g></svg>';
+  if (t === 'storm') return '<svg viewBox="0 0 48 48" width="'+s+'" height="'+s+'">' + cloud + ' fill="#64748b" style="animation:weather-float 3s ease-in-out infinite"/>' +
+    '<polygon points="26,28 22,36 25,36 21,44 30,34 26,34 30,28" fill="#fbbf24" style="animation:weather-flash 3s ease-in-out infinite"/>' +
+    '<g fill="#38bdf8">' +
+    '<circle cx="18" cy="35" r="1.2" style="animation:weather-rain 0.8s ease-in infinite"/>' +
+    '<circle cx="34" cy="34" r="1.2" style="animation:weather-rain 0.8s ease-in infinite;animation-delay:0.4s"/>' +
+    '</g></svg>';
+  return weatherSVG(116, s);
+}
+
+function weatherGradient(code) {
+  const t = weatherType(code);
+  if (t === 'sunny') return 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.05))';
+  if (t === 'partly') return 'linear-gradient(135deg, rgba(251,191,36,0.08), rgba(148,163,184,0.06))';
+  if (t === 'cloudy') return 'linear-gradient(135deg, rgba(148,163,184,0.12), rgba(100,116,139,0.05))';
+  if (t === 'fog') return 'linear-gradient(135deg, rgba(148,163,184,0.10), rgba(100,116,139,0.04))';
+  if (t === 'rain') return 'linear-gradient(135deg, rgba(56,189,248,0.12), rgba(30,64,175,0.05))';
+  if (t === 'snow') return 'linear-gradient(135deg, rgba(226,232,240,0.12), rgba(148,163,184,0.05))';
+  if (t === 'storm') return 'linear-gradient(135deg, rgba(100,116,139,0.15), rgba(30,41,59,0.08))';
+  return 'linear-gradient(135deg, rgba(148,163,184,0.08), rgba(100,116,139,0.04))';
+}
+
+function windArrow(dir) {
+  const dirs = {N:0,NNE:22.5,NE:45,ENE:67.5,E:90,ESE:112.5,SE:135,SSE:157.5,S:180,SSW:202.5,SW:225,WSW:247.5,W:270,WNW:292.5,NW:315,NNW:337.5};
+  const deg = dirs[dir] !== undefined ? dirs[dir] : 0;
+  return '<svg viewBox="0 0 16 16" width="14" height="14" style="transform:rotate('+deg+'deg)"><path d="M8 2 L12 12 L8 9 L4 12 Z" fill="var(--text-muted)"/></svg>';
+}
+
+// ─── Clock ────────────────────────────────────────────
+function stopClocks() {
+  clockIntervals.forEach(id => clearInterval(id));
+  clockIntervals = [];
+}
+
+function startClocks() {
+  document.querySelectorAll('[data-clock]').forEach(el => {
+    function update() {
+      const tz = el.dataset.tz;
+      const f24 = el.dataset.f24 === 'true';
+      const opts = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: !f24 };
+      if (tz) opts.timeZone = tz;
+      const dateOpts = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+      if (tz) dateOpts.timeZone = tz;
+      try {
+        el.querySelector('.clock-time').textContent = new Date().toLocaleTimeString('fr-FR', opts);
+        el.querySelector('.clock-date').textContent = new Date().toLocaleDateString('fr-FR', dateOpts);
+      } catch {
+        el.querySelector('.clock-time').textContent = new Date().toLocaleTimeString('fr-FR');
+        el.querySelector('.clock-date').textContent = new Date().toLocaleDateString('fr-FR');
+      }
+    }
+    update();
+    clockIntervals.push(setInterval(update, 1000));
+  });
+}
+
+// ─── Search ───────────────────────────────────────────
+function doSearch(event, engine, customUrl) {
+  event.preventDefault();
+  const query = event.target.querySelector('input').value;
+  if (!query) return;
+  const urls = {
+    google: 'https://www.google.com/search?q=',
+    duckduckgo: 'https://duckduckgo.com/?q=',
+    bing: 'https://www.bing.com/search?q='
+  };
+  let url;
+  if (engine === 'custom' && customUrl) {
+    url = customUrl.replace('%s', encodeURIComponent(query));
+  } else {
+    url = (urls[engine] || urls.google) + encodeURIComponent(query);
+  }
+  window.open(url, currentUser?.link_target || '_blank');
+}
+
+// ─── User menu ────────────────────────────────────────
+function showUserMenu(event) {
+  event.stopPropagation();
+  closeDropdowns();
+  const rect = event.target.getBoundingClientRect();
+  const dropdown = document.createElement('div');
+  dropdown.className = 'dropdown context-menu';
+  dropdown.style.top = (rect.bottom + 4) + 'px';
+  dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+  dropdown.innerHTML = `
+    <div class="dropdown-item" onclick="openSettings()"><span style="font-size:15px;width:20px;text-align:center">🎨</span> Personnalisation</div>
+    <div class="dropdown-item" onclick="openImportExport()"><span style="font-size:15px;width:20px;text-align:center">📦</span> Import / Export</div>
+    <div class="dropdown-item" onclick="installExtension()"><span style="font-size:15px;width:20px;text-align:center">🧩</span> Extension navigateur</div>
+    <div class="dropdown-sep"></div>
+    <div class="dropdown-item" onclick="changePassword()"><span style="font-size:15px;width:20px;text-align:center">🔒</span> Changer le mot de passe</div>
+    <div class="dropdown-item danger" onclick="logout()"><span style="font-size:15px;width:20px;text-align:center">🚪</span> Deconnexion</div>
+  `;
+  document.body.appendChild(dropdown);
+  setTimeout(() => document.addEventListener('click', closeDropdowns, { once: true }), 10);
+}
+
+function closeDropdowns() {
+  document.querySelectorAll('.context-menu').forEach(el => el.remove());
+}
+
+function changePassword() {
+  closeDropdowns();
+  showModal('Changer le mot de passe', `
+    <div class="form-group">
+      <label>Mot de passe actuel</label>
+      <input type="password" id="cur-pass">
+    </div>
+    <div class="form-group">
+      <label>Nouveau mot de passe</label>
+      <input type="password" id="new-pass">
+    </div>
+  `, async () => {
+    const currentPassword = document.getElementById('cur-pass').value;
+    const newPassword = document.getElementById('new-pass').value;
+    await api('/auth/password', { method: 'PUT', body: { currentPassword, newPassword } });
+    closeModal();
+    toast('Mot de passe mis a jour', 'success');
+  });
+}
+
+function installExtension() {
+  closeDropdowns();
+  const isFirefox = navigator.userAgent.includes('Firefox');
+  const isEdge = navigator.userAgent.includes('Edg/');
+  const isChrome = !isFirefox && !isEdge && navigator.userAgent.includes('Chrome');
+  const isChromium = isChrome || isEdge || navigator.userAgent.includes('OPR/') || navigator.userAgent.includes('Brave');
+
+  if (isFirefox) {
+    window.location.href = '/launchy-extension.xpi';
+    return;
+  }
+
+  const browserName = isEdge ? 'Edge' : isChrome ? 'Chrome / Brave' : 'votre navigateur';
+  setTimeout(() => {
+    showModal('Extension ' + browserName, `
+      <div style="text-align:center;padding:8px 0">
+        <div style="font-size:40px;margin-bottom:12px">🧩</div>
+        <p style="margin-bottom:16px;color:var(--text)">Ajoutez des sites a votre dashboard en un clic depuis ${esc(browserName)}.</p>
+        <a href="/launchy-extension-chromium.zip" class="btn btn-primary" style="margin-top:8px;display:inline-block;text-decoration:none;font-size:14px;padding:10px 24px">
+          Telecharger l'extension
+        </a>
+        <div style="margin-top:20px;text-align:left;padding:12px;background:var(--bg-input);border-radius:8px">
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.8">
+            <strong style="color:var(--text)">Installation :</strong><br>
+            1. Dezippez le fichier telecharge<br>
+            2. Ouvrez <strong style="color:var(--text)">${isEdge ? 'edge' : 'chrome'}://extensions</strong><br>
+            3. Activez le <strong style="color:var(--text)">Mode developpeur</strong> (en haut a droite)<br>
+            4. Cliquez <strong style="color:var(--text)">Charger l'extension non empaquetee</strong><br>
+            5. Selectionnez le dossier dezippe
+          </div>
+        </div>
+      </div>
+    `, null);
+  }, 50);
+}
+
+// ─── Settings ─────────────────────────────────────────
+function openSettings() {
+  closeDropdowns();
+  showModal('Personnalisation', `
+    <div class="modal-section">
+      <h3>Fond d'ecran</h3>
+      <div class="form-group">
+        <label>URL de l'image</label>
+        <input type="url" id="settings-bg-url" value="${esc(currentUser.background_url || '')}" placeholder="https://example.com/image.jpg">
+      </div>
+      <div class="form-group">
+        <label>Opacite du fond (${Math.round((currentUser.background_overlay || 0.85) * 100)}%)</label>
+        <input type="range" id="settings-bg-opacity" min="0" max="100" value="${Math.round((currentUser.background_overlay || 0.85) * 100)}">
+      </div>
+    </div>
+    <div class="modal-section">
+      <h3>Couleur d'accent</h3>
+      <div class="form-group" style="display:flex;gap:12px;align-items:center">
+        <input type="color" id="settings-accent" value="${currentUser.accent_color || '#4a9eff'}" style="width:60px">
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('settings-accent').value='#4a9eff'">Reinitialiser</button>
+      </div>
+    </div>
+    <div class="modal-section">
+      <h3>Ouverture des liens</h3>
+      <div class="form-group">
+        <select id="settings-link-target">
+          <option value="_blank" ${(currentUser.link_target || '_blank') === '_blank' ? 'selected' : ''}>Nouvel onglet</option>
+          <option value="_self" ${currentUser.link_target === '_self' ? 'selected' : ''}>Meme page</option>
+        </select>
+      </div>
+    </div>
+  `, async () => {
+    const background_url = document.getElementById('settings-bg-url').value;
+    const background_overlay = parseInt(document.getElementById('settings-bg-opacity').value) / 100;
+    const accent_color = document.getElementById('settings-accent').value;
+    const link_target = document.getElementById('settings-link-target').value;
+    const defaultAccent = accent_color === '#4a9eff' ? '' : accent_color;
+    currentUser = await api('/auth/customization', { method: 'PUT', body: { background_url, background_overlay, accent_color: defaultAccent, link_target } });
+    applyCustomization(currentUser);
+    closeModal();
+    toast('Personnalisation sauvegardee', 'success');
+  });
+
+  document.getElementById('settings-bg-opacity').addEventListener('input', (e) => {
+    e.target.previousElementSibling.textContent = `Opacite du fond (${e.target.value}%)`;
+  });
+}
+
+// ─── Import / Export ──────────────────────────────────
+function openImportExport() {
+  closeDropdowns();
+  showModal('Import / Export', `
+    <div class="modal-section">
+      <h3>Exporter</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="exportBookmarks()">Exporter les favoris (HTML)</button>
+        <button class="btn btn-outline btn-sm" onclick="exportOPML()">Exporter les flux RSS (OPML)</button>
+      </div>
+    </div>
+    <div class="modal-section">
+      <h3>Importer</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="importBookmarks()">Importer des favoris (HTML)</button>
+        <button class="btn btn-outline btn-sm" onclick="importOPML()">Importer des flux RSS (OPML)</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:8px">
+        Les favoris importes seront places dans une nouvelle page "Import".
+      </div>
+    </div>
+    <div class="modal-section">
+      <h3>Extensions navigateur</h3>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
+        Ajoutez des sites a votre dashboard en un clic.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:6px" onclick="installExtension()">
+          <span style="font-size:16px">🧩</span> Installer l'extension
+        </button>
+      </div>
+    </div>
+  `, null);
+}
+
+function exportBookmarks() {
+  window.open('/api/export/bookmarks?token=' + token, '_blank');
+  // Fallback: use fetch
+  fetch('/api/export/bookmarks', { headers: { Authorization: 'Bearer ' + token } })
+    .then(r => r.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'launchy-bookmarks.html'; a.click();
+      URL.revokeObjectURL(url);
+    });
+}
+
+function exportOPML() {
+  fetch('/api/export/opml', { headers: { Authorization: 'Bearer ' + token } })
+    .then(r => r.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'launchy-feeds.opml'; a.click();
+      URL.revokeObjectURL(url);
+    });
+}
+
+function importBookmarks() {
+  const input = document.getElementById('import-file-input');
+  input.accept = '.html,.htm';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const content = await file.text();
+    try {
+      const result = await api('/import/bookmarks', { method: 'POST', body: { content } });
+      toast(`${result.imported} favoris importes`, 'success');
+      closeModal();
+      await loadDashboard();
+    } catch (err) { toast(err.message, 'error'); }
+    input.value = '';
+  };
+  input.click();
+}
+
+function importOPML() {
+  const input = document.getElementById('import-file-input');
+  input.accept = '.opml,.xml';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const content = await file.text();
+    try {
+      const result = await api('/import/opml', { method: 'POST', body: { content } });
+      toast(`${result.imported} flux importes`, 'success');
+      closeModal();
+      await loadDashboard();
+    } catch (err) { toast(err.message, 'error'); }
+    input.value = '';
+  };
+  input.click();
+}
+
+// ─── Icon picker ──────────────────────────────────────
+const ICON_LIBRARY = [
+  // ── Google ──
+  {s:'google',n:'Google'},{s:'youtube',n:'YouTube'},{s:'gmail',n:'Gmail'},{s:'googledrive',n:'Google Drive'},{s:'googlemaps',n:'Google Maps'},{s:'googlecalendar',n:'Google Calendar'},{s:'googlephotos',n:'Google Photos'},{s:'googlesheets',n:'Google Sheets'},{s:'googledocs',n:'Google Docs'},{s:'googlemeet',n:'Google Meet'},{s:'googleanalytics',n:'Google Analytics'},{s:'googleadsense',n:'Google AdSense'},{s:'googlesearchconsole',n:'Search Console'},{s:'googlecloud',n:'Google Cloud'},{s:'googlehome',n:'Google Home'},
+  // ── Réseaux sociaux ──
+  {s:'facebook',n:'Facebook'},{s:'instagram',n:'Instagram'},{s:'x',n:'X / Twitter'},{s:'linkedin',n:'LinkedIn'},{s:'reddit',n:'Reddit'},{s:'pinterest',n:'Pinterest'},{s:'tiktok',n:'TikTok'},{s:'snapchat',n:'Snapchat'},{s:'mastodon',n:'Mastodon'},{s:'threads',n:'Threads'},{s:'bluesky',n:'Bluesky'},{s:'tumblr',n:'Tumblr'},{s:'flickr',n:'Flickr'},{s:'vimeo',n:'Vimeo'},{s:'dailymotion',n:'Dailymotion'},{s:'quora',n:'Quora'},{s:'hackernews',n:'Hacker News'},{s:'producthunt',n:'Product Hunt'},
+  // ── Messagerie ──
+  {s:'whatsapp',n:'WhatsApp'},{s:'telegram',n:'Telegram'},{s:'discord',n:'Discord'},{s:'slack',n:'Slack'},{s:'signal',n:'Signal'},{s:'messenger',n:'Messenger'},{s:'skype',n:'Skype'},{s:'zoom',n:'Zoom'},{s:'microsoftteams',n:'Teams'},{s:'webex',n:'Webex'},{s:'matrix',n:'Matrix'},{s:'element',n:'Element'},{s:'viber',n:'Viber'},{s:'line',n:'LINE'},{s:'wechat',n:'WeChat'},{s:'mattermost',n:'Mattermost'},{s:'rocketchat',n:'Rocket.Chat'},{s:'jitsi',n:'Jitsi'},
+  // ── Streaming & Médias ──
+  {s:'netflix',n:'Netflix'},{s:'spotify',n:'Spotify'},{s:'twitch',n:'Twitch'},{s:'amazonprimevideo',n:'Prime Video'},{s:'disneyplus',n:'Disney+'},{s:'appletv',n:'Apple TV'},{s:'plex',n:'Plex'},{s:'jellyfin',n:'Jellyfin'},{s:'emby',n:'Emby'},{s:'kodi',n:'Kodi'},{s:'crunchyroll',n:'Crunchyroll'},{s:'deezer',n:'Deezer'},{s:'applemusic',n:'Apple Music'},{s:'soundcloud',n:'SoundCloud'},{s:'tidal',n:'Tidal'},{s:'pandora',n:'Pandora'},{s:'audible',n:'Audible'},{s:'applepodcasts',n:'Apple Podcasts'},{s:'pocketcasts',n:'Pocket Casts'},
+  // ── Shopping & Finance ──
+  {s:'amazon',n:'Amazon'},{s:'ebay',n:'eBay'},{s:'paypal',n:'PayPal'},{s:'stripe',n:'Stripe'},{s:'aliexpress',n:'AliExpress'},{s:'leboncoin',n:'Leboncoin'},{s:'shopify',n:'Shopify'},{s:'etsy',n:'Etsy'},{s:'vinted',n:'Vinted'},{s:'rakuten',n:'Rakuten'},{s:'zalando',n:'Zalando'},{s:'woocommerce',n:'WooCommerce'},{s:'prestashop',n:'PrestaShop'},{s:'magento',n:'Magento'},{s:'wise',n:'Wise'},{s:'revolut',n:'Revolut'},{s:'n26',n:'N26'},{s:'bitcoin',n:'Bitcoin'},{s:'ethereum',n:'Ethereum'},{s:'binance',n:'Binance'},{s:'coinbase',n:'Coinbase'},{s:'klarna',n:'Klarna'},
+  // ── Dev & Code ──
+  {s:'github',n:'GitHub'},{s:'gitlab',n:'GitLab'},{s:'bitbucket',n:'Bitbucket'},{s:'stackoverflow',n:'Stack Overflow'},{s:'docker',n:'Docker'},{s:'kubernetes',n:'Kubernetes'},{s:'npm',n:'npm'},{s:'yarn',n:'Yarn'},{s:'pnpm',n:'pnpm'},{s:'python',n:'Python'},{s:'javascript',n:'JavaScript'},{s:'typescript',n:'TypeScript'},{s:'react',n:'React'},{s:'vuedotjs',n:'Vue.js'},{s:'angular',n:'Angular'},{s:'svelte',n:'Svelte'},{s:'nextdotjs',n:'Next.js'},{s:'nuxtdotjs',n:'Nuxt.js'},{s:'nodejs',n:'Node.js'},{s:'deno',n:'Deno'},{s:'bun',n:'Bun'},{s:'go',n:'Go'},{s:'rust',n:'Rust'},{s:'java',n:'Java'},{s:'kotlin',n:'Kotlin'},{s:'swift',n:'Swift'},{s:'php',n:'PHP'},{s:'laravel',n:'Laravel'},{s:'symfony',n:'Symfony'},{s:'ruby',n:'Ruby'},{s:'rubyonrails',n:'Rails'},{s:'dotnet',n:'.NET'},{s:'csharp',n:'C#'},{s:'cplusplus',n:'C++'},{s:'dart',n:'Dart'},{s:'flutter',n:'Flutter'},{s:'django',n:'Django'},{s:'flask',n:'Flask'},{s:'fastapi',n:'FastAPI'},{s:'express',n:'Express'},{s:'spring',n:'Spring'},{s:'tailwindcss',n:'Tailwind'},{s:'bootstrap',n:'Bootstrap'},{s:'sass',n:'Sass'},{s:'webpack',n:'Webpack'},{s:'vite',n:'Vite'},{s:'git',n:'Git'},{s:'visualstudiocode',n:'VS Code'},{s:'jetbrains',n:'JetBrains'},{s:'sublimetext',n:'Sublime'},{s:'neovim',n:'Neovim'},{s:'postman',n:'Postman'},{s:'insomnia',n:'Insomnia'},{s:'swagger',n:'Swagger'},
+  // ── Bases de données ──
+  {s:'mysql',n:'MySQL'},{s:'postgresql',n:'PostgreSQL'},{s:'mongodb',n:'MongoDB'},{s:'redis',n:'Redis'},{s:'sqlite',n:'SQLite'},{s:'elasticsearch',n:'Elasticsearch'},{s:'mariadb',n:'MariaDB'},{s:'microsoftsqlserver',n:'SQL Server'},{s:'oracle',n:'Oracle'},{s:'couchdb',n:'CouchDB'},{s:'neo4j',n:'Neo4j'},{s:'influxdb',n:'InfluxDB'},{s:'graphql',n:'GraphQL'},{s:'firebase',n:'Firebase'},{s:'supabase',n:'Supabase'},{s:'prisma',n:'Prisma'},{s:'airtable',n:'Airtable'},
+  // ── CI/CD & DevOps ──
+  {s:'githubactions',n:'GitHub Actions'},{s:'circleci',n:'CircleCI'},{s:'jenkins',n:'Jenkins'},{s:'ansible',n:'Ansible'},{s:'terraform',n:'Terraform'},{s:'puppet',n:'Puppet'},{s:'vagrant',n:'Vagrant'},{s:'sonarqube',n:'SonarQube'},{s:'sentry',n:'Sentry'},{s:'datadog',n:'Datadog'},{s:'newrelic',n:'New Relic'},{s:'splunk',n:'Splunk'},{s:'pagerduty',n:'PagerDuty'},{s:'opsgenie',n:'OpsGenie'},
+  // ── Cloud & Hosting ──
+  {s:'cloudflare',n:'Cloudflare'},{s:'amazonaws',n:'AWS'},{s:'microsoftazure',n:'Azure'},{s:'vercel',n:'Vercel'},{s:'netlify',n:'Netlify'},{s:'heroku',n:'Heroku'},{s:'digitalocean',n:'DigitalOcean'},{s:'ovh',n:'OVH'},{s:'hetzner',n:'Hetzner'},{s:'vultr',n:'Vultr'},{s:'linode',n:'Linode'},{s:'scaleway',n:'Scaleway'},{s:'ionos',n:'IONOS'},{s:'gandi',n:'Gandi'},{s:'namecheap',n:'Namecheap'},{s:'godaddy',n:'GoDaddy'},{s:'letsencrypt',n:'Let\'s Encrypt'},{s:'fastly',n:'Fastly'},{s:'railway',n:'Railway'},{s:'render',n:'Render'},{s:'fly.io',n:'Fly.io'},{s:'cpanel',n:'cPanel'},{s:'plesk',n:'Plesk'},
+  // ── Productivité ──
+  {s:'notion',n:'Notion'},{s:'trello',n:'Trello'},{s:'jira',n:'Jira'},{s:'confluence',n:'Confluence'},{s:'asana',n:'Asana'},{s:'monday',n:'Monday'},{s:'clickup',n:'ClickUp'},{s:'todoist',n:'Todoist'},{s:'evernote',n:'Evernote'},{s:'obsidian',n:'Obsidian'},{s:'logseq',n:'Logseq'},{s:'linear',n:'Linear'},{s:'basecamp',n:'Basecamp'},{s:'microsoftoutlook',n:'Outlook'},{s:'microsoftword',n:'Word'},{s:'microsoftexcel',n:'Excel'},{s:'microsoftpowerpoint',n:'PowerPoint'},{s:'microsoftonenote',n:'OneNote'},{s:'googlekeep',n:'Google Keep'},{s:'1password',n:'1Password'},{s:'lastpass',n:'LastPass'},{s:'dashlane',n:'Dashlane'},
+  // ── Design ──
+  {s:'figma',n:'Figma'},{s:'canva',n:'Canva'},{s:'sketch',n:'Sketch'},{s:'adobephotoshop',n:'Photoshop'},{s:'adobeillustrator',n:'Illustrator'},{s:'adobexd',n:'Adobe XD'},{s:'adobepremierepro',n:'Premiere Pro'},{s:'adobeaftereffects',n:'After Effects'},{s:'adobelightroom',n:'Lightroom'},{s:'adobeindesign',n:'InDesign'},{s:'adobeacrobatreader',n:'Acrobat'},{s:'blender',n:'Blender'},{s:'gimp',n:'GIMP'},{s:'inkscape',n:'Inkscape'},{s:'dribbble',n:'Dribbble'},{s:'behance',n:'Behance'},{s:'invision',n:'InVision'},{s:'framer',n:'Framer'},
+  // ── Stockage & Cloud perso ──
+  {s:'dropbox',n:'Dropbox'},{s:'microsoftonedrive',n:'OneDrive'},{s:'icloud',n:'iCloud'},{s:'nextcloud',n:'Nextcloud'},{s:'mega',n:'MEGA'},{s:'box',n:'Box'},{s:'googledrive',n:'Google Drive'},{s:'syncthing',n:'Syncthing'},
+  // ── Navigateurs ──
+  {s:'firefox',n:'Firefox'},{s:'googlechrome',n:'Chrome'},{s:'brave',n:'Brave'},{s:'vivaldi',n:'Vivaldi'},{s:'opera',n:'Opera'},{s:'microsoftedge',n:'Edge'},{s:'tor',n:'Tor'},{s:'safari',n:'Safari'},{s:'arc',n:'Arc'},
+  // ── OS & Systèmes ──
+  {s:'linux',n:'Linux'},{s:'ubuntu',n:'Ubuntu'},{s:'debian',n:'Debian'},{s:'fedora',n:'Fedora'},{s:'archlinux',n:'Arch Linux'},{s:'centos',n:'CentOS'},{s:'redhat',n:'Red Hat'},{s:'opensuse',n:'openSUSE'},{s:'kalilinux',n:'Kali Linux'},{s:'alpinelinux',n:'Alpine'},{s:'raspberrypi',n:'Raspberry Pi'},{s:'windows11',n:'Windows'},{s:'apple',n:'Apple'},{s:'android',n:'Android'},{s:'freebsd',n:'FreeBSD'},
+  // ── Self-hosted & Infra ──
+  {s:'homeassistant',n:'Home Assistant'},{s:'proxmox',n:'Proxmox'},{s:'portainer',n:'Portainer'},{s:'grafana',n:'Grafana'},{s:'prometheus',n:'Prometheus'},{s:'nginx',n:'Nginx'},{s:'apache',n:'Apache'},{s:'caddy',n:'Caddy'},{s:'traefik',n:'Traefik'},{s:'pihole',n:'Pi-hole'},{s:'adguard',n:'AdGuard'},{s:'wireguard',n:'WireGuard'},{s:'openvpn',n:'OpenVPN'},{s:'bitwarden',n:'Bitwarden'},{s:'vaultwarden',n:'Vaultwarden'},{s:'synology',n:'Synology'},{s:'truenas',n:'TrueNAS'},{s:'unifi',n:'UniFi'},{s:'opnsense',n:'OPNsense'},{s:'pfsense',n:'pfSense'},{s:'gitea',n:'Gitea'},{s:'forgejo',n:'Forgejo'},{s:'zabbix',n:'Zabbix'},{s:'nagios',n:'Nagios'},{s:'ansible',n:'Ansible'},{s:'vagrant',n:'Vagrant'},{s:'cockpit',n:'Cockpit'},{s:'zigbee',n:'Zigbee'},{s:'mqtt',n:'MQTT'},{s:'zigbee2mqtt',n:'Zigbee2MQTT'},{s:'nodered',n:'Node-RED'},{s:'esphome',n:'ESPHome'},
+  // ── Média & Arr ──
+  {s:'sonarr',n:'Sonarr'},{s:'radarr',n:'Radarr'},{s:'prowlarr',n:'Prowlarr'},{s:'overseerr',n:'Overseerr'},{s:'tautulli',n:'Tautulli'},{s:'qbittorrent',n:'qBittorrent'},{s:'transmission',n:'Transmission'},{s:'deluge',n:'Deluge'},{s:'lidarr',n:'Lidarr'},{s:'bazarr',n:'Bazarr'},{s:'jackett',n:'Jackett'},
+  // ── Sécurité & VPN ──
+  {s:'nordvpn',n:'NordVPN'},{s:'protonvpn',n:'Proton VPN'},{s:'mullvad',n:'Mullvad'},{s:'expressvpn',n:'ExpressVPN'},{s:'keepassxc',n:'KeePassXC'},{s:'authy',n:'Authy'},{s:'crowdsec',n:'CrowdSec'},{s:'snort',n:'Snort'},
+  // ── Email & Marketing ──
+  {s:'gmail',n:'Gmail'},{s:'protonmail',n:'ProtonMail'},{s:'thunderbird',n:'Thunderbird'},{s:'mailchimp',n:'Mailchimp'},{s:'sendgrid',n:'SendGrid'},{s:'mailgun',n:'Mailgun'},{s:'mailtrap',n:'Mailtrap'},{s:'mailerlite',n:'MailerLite'},{s:'brevo',n:'Brevo'},{s:'convertkit',n:'ConvertKit'},{s:'infomaniak',n:'Infomaniak'},
+  // ── CMS & Sites ──
+  {s:'wordpress',n:'WordPress'},{s:'drupal',n:'Drupal'},{s:'joomla',n:'Joomla'},{s:'ghost',n:'Ghost'},{s:'strapi',n:'Strapi'},{s:'contentful',n:'Contentful'},{s:'sanity',n:'Sanity'},{s:'directus',n:'Directus'},{s:'hugo',n:'Hugo'},{s:'gatsby',n:'Gatsby'},{s:'astro',n:'Astro'},{s:'eleventy',n:'11ty'},{s:'docusaurus',n:'Docusaurus'},{s:'webflow',n:'Webflow'},{s:'wix',n:'Wix'},{s:'squarespace',n:'Squarespace'},
+  // ── IA & ML ──
+  {s:'openai',n:'OpenAI'},{s:'anthropic',n:'Anthropic'},{s:'perplexity',n:'Perplexity'},{s:'huggingface',n:'Hugging Face'},{s:'pytorch',n:'PyTorch'},{s:'tensorflow',n:'TensorFlow'},{s:'jupyter',n:'Jupyter'},{s:'kaggle',n:'Kaggle'},{s:'opencv',n:'OpenCV'},{s:'langchain',n:'LangChain'},{s:'ollama',n:'Ollama'},{s:'googlegemini',n:'Gemini'},{s:'meta',n:'Meta AI'},{s:'stability.ai',n:'Stability AI'},{s:'midjourney',n:'Midjourney'},
+  // ── Gaming ──
+  {s:'steam',n:'Steam'},{s:'epicgames',n:'Epic Games'},{s:'gog',n:'GOG'},{s:'playstation',n:'PlayStation'},{s:'xbox',n:'Xbox'},{s:'nintendo',n:'Nintendo'},{s:'riotgames',n:'Riot Games'},{s:'ubisoft',n:'Ubisoft'},{s:'ea',n:'EA'},{s:'unity',n:'Unity'},{s:'unrealengine',n:'Unreal Engine'},{s:'godotengine',n:'Godot'},{s:'itchdotio',n:'itch.io'},{s:'retroarch',n:'RetroArch'},
+  // ── Divers & Outils ──
+  {s:'wikipedia',n:'Wikipedia'},{s:'medium',n:'Medium'},{s:'substack',n:'Substack'},{s:'dev',n:'DEV'},{s:'hashnode',n:'Hashnode'},{s:'rss',n:'RSS'},{s:'speedtest',n:'Speedtest'},{s:'waybackmachine',n:'Wayback Machine'},{s:'archive',n:'Archive.org'},{s:'twilio',n:'Twilio'},{s:'zapier',n:'Zapier'},{s:'ifttt',n:'IFTTT'},{s:'make',n:'Make'},{s:'n8n',n:'n8n'},{s:'1password',n:'1Password'},{s:'photopea',n:'Photopea'}
+];
+
+function siUrl(slug) {
+  return `https://cdn.simpleicons.org/${slug}`;
+}
+
+const ICON_CATEGORIES = [
+  {key:'all',label:'Tout'},
+  {key:'social',label:'Social'},
+  {key:'msg',label:'Messagerie'},
+  {key:'stream',label:'Streaming'},
+  {key:'shop',label:'Shopping'},
+  {key:'dev',label:'Dev'},
+  {key:'db',label:'BDD'},
+  {key:'devops',label:'DevOps'},
+  {key:'cloud',label:'Cloud'},
+  {key:'prod',label:'Productivite'},
+  {key:'design',label:'Design'},
+  {key:'storage',label:'Stockage'},
+  {key:'browser',label:'Navigateurs'},
+  {key:'os',label:'OS'},
+  {key:'selfhost',label:'Self-hosted'},
+  {key:'media',label:'Media *arr'},
+  {key:'security',label:'Securite'},
+  {key:'email',label:'Email'},
+  {key:'cms',label:'CMS'},
+  {key:'ai',label:'IA'},
+  {key:'gaming',label:'Gaming'},
+  {key:'misc',label:'Divers'},
+];
+
+const ICON_CAT_MAP = {};
+(function(){
+  const cats = ['google','social','msg','stream','shop','dev','db','devops','cloud','prod','design','storage','browser','os','selfhost','media','security','email','cms','ai','gaming','misc'];
+  let catIdx = 0;
+  for (const icon of ICON_LIBRARY) {
+    if (!ICON_CAT_MAP[icon.s]) {
+      const commentBefore = ICON_LIBRARY.indexOf(icon);
+      ICON_CAT_MAP[icon.s] = cats[catIdx] || 'misc';
+    }
+  }
+  // Map icons to categories based on their position in the array
+  const ranges = [
+    [0,14,'google'],[15,32,'social'],[33,50,'msg'],[51,69,'stream'],
+    [70,91,'shop'],[92,144,'dev'],[145,161,'db'],[162,175,'devops'],
+    [176,198,'cloud'],[199,220,'prod'],[221,238,'design'],[239,246,'storage'],
+    [247,255,'browser'],[256,270,'os'],[271,302,'selfhost'],[303,313,'media'],
+    [314,321,'security'],[322,332,'email'],[333,348,'cms'],[349,363,'ai'],
+    [364,377,'gaming'],[378,999,'misc']
+  ];
+  ICON_LIBRARY.forEach((icon, idx) => {
+    const range = ranges.find(r => idx >= r[0] && idx <= r[1]);
+    ICON_CAT_MAP[icon.s] = range ? range[2] : 'misc';
+  });
+})();
+
+const EMOJI_ICONS = [
+  {e:'🏠',n:'Maison'},{e:'⭐',n:'Etoile'},{e:'❤️',n:'Coeur'},{e:'🔥',n:'Feu'},{e:'⚡',n:'Eclair'},
+  {e:'🎯',n:'Cible'},{e:'🚀',n:'Fusee'},{e:'💡',n:'Idee'},{e:'🔧',n:'Cle'},{e:'⚙️',n:'Engrenage'},
+  {e:'📁',n:'Dossier'},{e:'📂',n:'Dossier ouvert'},{e:'📊',n:'Graphique'},{e:'📈',n:'Hausse'},{e:'📉',n:'Baisse'},
+  {e:'📧',n:'Email'},{e:'📱',n:'Mobile'},{e:'💻',n:'Laptop'},{e:'🖥️',n:'Ecran'},{e:'🖨️',n:'Imprimante'},
+  {e:'🔒',n:'Cadenas'},{e:'🔑',n:'Cle'},{e:'🛡️',n:'Bouclier'},{e:'🔍',n:'Loupe'},{e:'📡',n:'Antenne'},
+  {e:'🌐',n:'Globe'},{e:'🌍',n:'Terre'},{e:'☁️',n:'Cloud'},{e:'📦',n:'Colis'},{e:'🗃️',n:'Fichier'},
+  {e:'🎵',n:'Musique'},{e:'🎬',n:'Cinema'},{e:'📸',n:'Photo'},{e:'🎮',n:'Jeux'},{e:'🎨',n:'Art'},
+  {e:'📚',n:'Livres'},{e:'✏️',n:'Crayon'},{e:'📝',n:'Notes'},{e:'📌',n:'Epingle'},{e:'📎',n:'Trombone'},
+  {e:'🗂️',n:'Classeur'},{e:'🗓️',n:'Calendrier'},{e:'⏰',n:'Alarme'},{e:'🔔',n:'Cloche'},{e:'💬',n:'Chat'},
+  {e:'👤',n:'Utilisateur'},{e:'👥',n:'Groupe'},{e:'🏢',n:'Bureau'},{e:'🏪',n:'Magasin'},{e:'🏭',n:'Usine'},
+  {e:'🚗',n:'Voiture'},{e:'✈️',n:'Avion'},{e:'🚂',n:'Train'},{e:'🛒',n:'Panier'},{e:'💰',n:'Argent'},
+  {e:'💳',n:'Carte'},{e:'🏦',n:'Banque'},{e:'📞',n:'Telephone'},{e:'🔗',n:'Lien'},{e:'⬇️',n:'Download'},
+  {e:'⬆️',n:'Upload'},{e:'♻️',n:'Recyclage'},{e:'✅',n:'Check'},{e:'❌',n:'Croix'},{e:'⚠️',n:'Attention'},
+  {e:'💾',n:'Disquette'},{e:'🗄️',n:'Serveur'},{e:'🔌',n:'Prise'},{e:'🧪',n:'Labo'},{e:'🤖',n:'Robot'},
+  {e:'🧠',n:'Cerveau'},{e:'📺',n:'TV'},{e:'🔊',n:'Son'},{e:'🎙️',n:'Micro'},{e:'📻',n:'Radio'},
+  {e:'🍕',n:'Pizza'},{e:'☕',n:'Cafe'},{e:'🍿',n:'Popcorn'},{e:'🎁',n:'Cadeau'},{e:'🏆',n:'Trophee'},
+  {e:'🛠️',n:'Outils'},{e:'🧩',n:'Puzzle'},{e:'🗺️',n:'Carte geo'},{e:'🏠',n:'Home'},
+];
+
+function emojiToDataUri(emoji) {
+  const color = ICON_COLORS[hashStr(emoji) % ICON_COLORS.length];
+  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42"><rect width="42" height="42" rx="12" fill="${color}" opacity="0.2"/><text x="21" y="30" text-anchor="middle" font-size="26">${emoji}</text></svg>`)}`;
+}
+
+function iconPickerHTML(currentIcon) {
+  return `
+    <div class="form-group">
+      <label>Icone</label>
+      <div class="icon-picker-tabs">
+        <button type="button" class="btn btn-sm btn-ghost icon-tab active" onclick="setIconTab('auto')">Auto</button>
+        <button type="button" class="btn btn-sm btn-ghost icon-tab" onclick="setIconTab('library')">Bibliotheque</button>
+        <button type="button" class="btn btn-sm btn-ghost icon-tab" onclick="setIconTab('emoji')">Emoji</button>
+        <button type="button" class="btn btn-sm btn-ghost icon-tab" onclick="setIconTab('upload')">Upload</button>
+        <button type="button" class="btn btn-sm btn-ghost icon-tab" onclick="setIconTab('custom')">URL</button>
+      </div>
+      <div id="icon-section-auto">
+        <div style="font-size:12px;color:var(--text-muted)">L'icone sera recuperee automatiquement depuis le site.</div>
+      </div>
+      <div id="icon-section-library" class="hidden">
+        <input type="text" id="icon-search" placeholder="Rechercher parmi 3000+ icones..." oninput="filterIcons(this.value)">
+        <div id="icon-cat-filters" style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0"></div>
+        <div class="icon-grid" id="icon-grid"></div>
+      </div>
+      <div id="icon-section-emoji" class="hidden">
+        <input type="text" id="emoji-search" placeholder="Rechercher un emoji..." oninput="filterEmojis(this.value)">
+        <div class="icon-grid" id="emoji-grid"></div>
+      </div>
+      <div id="icon-section-upload" class="hidden">
+        <div style="border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s"
+             onclick="document.getElementById('icon-file-input').click()"
+             ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+             ondragleave="this.style.borderColor='var(--border)'"
+             ondrop="event.preventDefault();this.style.borderColor='var(--border)';handleIconDrop(event)">
+          <div style="font-size:28px;margin-bottom:8px">📁</div>
+          <div style="font-size:13px;color:var(--text-muted)">Cliquer ou glisser une image ici</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">PNG, JPG, SVG, ICO, WebP — max 200 Ko</div>
+        </div>
+        <input type="file" id="icon-file-input" accept="image/*,.ico" style="display:none" onchange="handleIconUpload(this)">
+      </div>
+      <div id="icon-section-custom" class="hidden">
+        <input type="url" id="icon-custom-url" placeholder="https://example.com/icon.png" value="${esc(currentIcon)}" oninput="document.getElementById('bm-icon-value').value=this.value;updateIconPreview()">
+      </div>
+      <div id="icon-preview-box" class="icon-preview hidden">
+        <img id="icon-preview-img" src="" alt="">
+        <span id="icon-preview-name"></span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="clearIconSelection()" style="margin-left:auto">Retirer</button>
+      </div>
+      <input type="hidden" id="bm-icon-value" value="${esc(currentIcon)}">
+    </div>`;
+}
+
+let activeIconCat = 'all';
+
+function initIconPicker(currentIcon) {
+  const grid = document.getElementById('icon-grid');
+  if (!grid) return;
+  activeIconCat = 'all';
+  renderCatFilters();
+  renderIconGrid(ICON_LIBRARY);
+  renderEmojiGrid(EMOJI_ICONS);
+  if (currentIcon) {
+    const match = ICON_LIBRARY.find(i => siUrl(i.s) === currentIcon);
+    if (match) {
+      setIconTab('library');
+      setTimeout(() => {
+        const el = grid.querySelector(`[data-slug="${match.s}"]`);
+        if (el) el.classList.add('selected');
+      }, 50);
+    } else if (currentIcon) {
+      setIconTab('custom');
+    }
+    updateIconPreview();
+  }
+}
+
+function renderCatFilters() {
+  const container = document.getElementById('icon-cat-filters');
+  if (!container) return;
+  container.innerHTML = ICON_CATEGORIES.map(c =>
+    `<button type="button" class="btn btn-sm ${c.key === activeIconCat ? 'btn-primary' : 'btn-ghost'}" style="padding:3px 8px;font-size:11px" onclick="filterByCategory('${c.key}')">${c.label}</button>`
+  ).join('');
+}
+
+function filterByCategory(cat) {
+  activeIconCat = cat;
+  renderCatFilters();
+  const searchVal = document.getElementById('icon-search')?.value?.toLowerCase()?.trim() || '';
+  let filtered = ICON_LIBRARY;
+  if (cat !== 'all') filtered = filtered.filter(i => ICON_CAT_MAP[i.s] === cat);
+  if (searchVal) filtered = filtered.filter(i => i.n.toLowerCase().includes(searchVal) || i.s.toLowerCase().includes(searchVal));
+  renderIconGrid(filtered);
+}
+
+function renderEmojiGrid(emojis) {
+  const grid = document.getElementById('emoji-grid');
+  if (!grid) return;
+  grid.innerHTML = emojis.map(e => `
+    <div class="icon-grid-item" onclick="selectEmoji('${e.e}','${esc(e.n)}')">
+      <span style="font-size:28px;line-height:1">${e.e}</span>
+      <span>${esc(e.n)}</span>
+    </div>
+  `).join('');
+}
+
+function selectEmoji(emoji, name) {
+  const url = emojiToDataUri(emoji);
+  document.getElementById('bm-icon-value').value = url;
+  const preview = document.getElementById('icon-preview-box');
+  preview.classList.remove('hidden');
+  document.getElementById('icon-preview-img').src = url;
+  document.getElementById('icon-preview-name').textContent = emoji + ' ' + name;
+}
+
+function filterEmojis(query) {
+  const q = query.toLowerCase().trim();
+  const filtered = q ? EMOJI_ICONS.filter(e => e.n.toLowerCase().includes(q)) : EMOJI_ICONS;
+  renderEmojiGrid(filtered);
+}
+
+function handleIconUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 200 * 1024) { toast('Fichier trop lourd (max 200 Ko)', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUri = e.target.result;
+    document.getElementById('bm-icon-value').value = dataUri;
+    const preview = document.getElementById('icon-preview-box');
+    preview.classList.remove('hidden');
+    document.getElementById('icon-preview-img').src = dataUri;
+    document.getElementById('icon-preview-name').textContent = file.name;
+    toast('Icone chargee', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleIconDrop(event) {
+  const file = event.dataTransfer.files[0];
+  if (!file || !file.type.startsWith('image')) return;
+  const fakeInput = { files: [file] };
+  handleIconUpload(fakeInput);
+}
+
+function renderIconGrid(icons) {
+  const grid = document.getElementById('icon-grid');
+  if (!grid) return;
+  grid.innerHTML = icons.map(i => `
+    <div class="icon-grid-item" data-slug="${i.s}" onclick="selectIcon('${i.s}','${esc(i.n)}')">
+      <img src="${siUrl(i.s)}" alt="${esc(i.n)}" loading="lazy" onerror="this.parentElement.style.display='none'">
+      <span>${esc(i.n)}</span>
+    </div>
+  `).join('');
+}
+
+let iconSearchTimeout = null;
+function filterIcons(query) {
+  const q = query.toLowerCase().trim();
+  let filtered = ICON_LIBRARY;
+  if (activeIconCat !== 'all') filtered = filtered.filter(i => ICON_CAT_MAP[i.s] === activeIconCat);
+  if (q) filtered = filtered.filter(i => i.n.toLowerCase().includes(q) || i.s.toLowerCase().includes(q));
+  renderIconGrid(filtered);
+
+  clearTimeout(iconSearchTimeout);
+  if (q && q.length >= 2) {
+    iconSearchTimeout = setTimeout(() => tryDynamicIcon(q), 400);
+  }
+}
+
+function tryDynamicIcon(query) {
+  const slug = query.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const alreadyExists = ICON_LIBRARY.some(i => i.s === slug);
+  if (alreadyExists) return;
+
+  const testImg = new Image();
+  testImg.onload = () => {
+    const grid = document.getElementById('icon-grid');
+    if (!grid) return;
+    const existing = grid.querySelector(`[data-slug="${slug}"]`);
+    if (existing) return;
+    const div = document.createElement('div');
+    div.className = 'icon-grid-item';
+    div.dataset.slug = slug;
+    div.onclick = () => selectIcon(slug, query);
+    div.innerHTML = `<img src="${siUrl(slug)}" alt="${esc(query)}" style="width:28px;height:28px"><span>${esc(query)}</span>`;
+    grid.insertBefore(div, grid.firstChild);
+  };
+  testImg.src = siUrl(slug);
+
+  const variants = [
+    query.toLowerCase().replace(/\s+/g, ''),
+    query.toLowerCase().replace(/\s+/g, '-'),
+    query.toLowerCase().replace(/\s+/g, 'dot'),
+  ];
+  variants.forEach(v => {
+    if (v === slug) return;
+    const testImg2 = new Image();
+    testImg2.onload = () => {
+      const grid = document.getElementById('icon-grid');
+      if (!grid || grid.querySelector(`[data-slug="${v}"]`)) return;
+      const div = document.createElement('div');
+      div.className = 'icon-grid-item';
+      div.dataset.slug = v;
+      div.onclick = () => selectIcon(v, query);
+      div.innerHTML = `<img src="${siUrl(v)}" alt="${esc(query)}" style="width:28px;height:28px"><span>${esc(query)}</span>`;
+      grid.insertBefore(div, grid.firstChild);
+    };
+    testImg2.src = siUrl(v);
+  });
+}
+
+function selectIcon(slug, name) {
+  const url = siUrl(slug);
+  document.getElementById('bm-icon-value').value = url;
+  document.querySelectorAll('.icon-grid-item').forEach(el => el.classList.remove('selected'));
+  const el = document.querySelector(`[data-slug="${slug}"]`);
+  if (el) el.classList.add('selected');
+  const preview = document.getElementById('icon-preview-box');
+  preview.classList.remove('hidden');
+  document.getElementById('icon-preview-img').src = url;
+  document.getElementById('icon-preview-name').textContent = name;
+}
+
+function setIconTab(tab) {
+  const tabMap = {auto:'Auto', library:'Biblio', emoji:'Emoji', upload:'Upload', custom:'URL'};
+  document.querySelectorAll('.icon-tab').forEach(btn => {
+    const t = btn.textContent.trim();
+    btn.classList.toggle('active', t === tabMap[tab] || t === 'Bibliotheque' && tab === 'library');
+  });
+  ['auto','library','emoji','upload','custom'].forEach(t => {
+    const el = document.getElementById('icon-section-' + t);
+    if (el) el.classList.toggle('hidden', t !== tab);
+  });
+  if (tab === 'auto') {
+    document.getElementById('bm-icon-value').value = '';
+    document.getElementById('icon-preview-box').classList.add('hidden');
+  }
+}
+
+function clearIconSelection() {
+  document.getElementById('bm-icon-value').value = '';
+  document.getElementById('icon-preview-box').classList.add('hidden');
+  document.querySelectorAll('.icon-grid-item').forEach(el => el.classList.remove('selected'));
+  const customInput = document.getElementById('icon-custom-url');
+  if (customInput) customInput.value = '';
+}
+
+function updateIconPreview() {
+  const val = document.getElementById('bm-icon-value').value;
+  const preview = document.getElementById('icon-preview-box');
+  if (val) {
+    preview.classList.remove('hidden');
+    document.getElementById('icon-preview-img').src = val;
+    document.getElementById('icon-preview-name').textContent = 'Icone personnalisee';
+  } else {
+    preview.classList.add('hidden');
+  }
+}
+
+// ─── Markdown (lightweight) ──────────────────────────
+function renderMd(text) {
+  let html = esc(text);
+  html = html.replace(/^### (.+)$/gm, '<strong style="font-size:14px">$1</strong>');
+  html = html.replace(/^## (.+)$/gm, '<strong style="font-size:15px">$1</strong>');
+  html = html.replace(/^# (.+)$/gm, '<strong style="font-size:16px">$1</strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/`([^`]+)`/g, '<code style="background:var(--bg-input);padding:1px 4px;border-radius:3px;font-size:12px">$1</code>');
+  html = html.replace(/^- (.+)$/gm, '<span style="display:block;padding-left:12px">• $1</span>');
+  html = html.replace(/^\d+\. (.+)$/gm, (m, p1, offset, str) => {
+    const num = m.match(/^(\d+)/)[1];
+    return `<span style="display:block;padding-left:12px">${num}. ${p1}</span>`;
+  });
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+// ─── AI Chat ─────────────────────────────────────────
+function loadAIWidgets(page) {
+  if (!page) return;
+  page.columns.forEach(col => col.widgets.forEach(w => {
+    if (w.type === 'ai' && w.config?.apiKey) loadAIMessages(w.id);
+  }));
+}
+
+async function loadAIMessages(widgetId) {
+  const container = document.getElementById('ai-messages-' + widgetId);
+  if (!container) return;
+  try {
+    const msgs = await api('/ai/messages/' + widgetId);
+    container.innerHTML = msgs.map(m =>
+      `<div class="ai-msg ${esc(m.role)}">${m.role === 'assistant' ? renderMd(m.content) : esc(m.content)}</div>`
+    ).join('');
+    container.scrollTop = container.scrollHeight;
+  } catch {}
+}
+
+function renderAIMessagesLocal(widgetId, msgs) {
+  const container = document.getElementById('ai-messages-' + widgetId);
+  if (!container) return;
+  container.innerHTML = msgs.map(m =>
+    `<div class="ai-msg ${esc(m.role)}">${esc(m.content)}</div>`
+  ).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendAIMessage(event, widgetId) {
+  event.preventDefault();
+  const input = document.getElementById('ai-input-' + widgetId);
+  const btn = document.getElementById('ai-send-' + widgetId);
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  const container = document.getElementById('ai-messages-' + widgetId);
+  const userDiv = document.createElement('div');
+  userDiv.className = 'ai-msg user';
+  userDiv.textContent = text;
+  container.appendChild(userDiv);
+
+  btn.disabled = true;
+  const typing = document.createElement('div');
+  typing.className = 'ai-typing';
+  typing.textContent = 'Reflexion en cours...';
+  container.appendChild(typing);
+  container.scrollTop = container.scrollHeight;
+
+  try {
+    const res = await api('/ai/chat', { method: 'POST', body: { widgetId, message: text } });
+    const assistDiv = document.createElement('div');
+    assistDiv.className = 'ai-msg assistant';
+    assistDiv.innerHTML = renderMd(res.content);
+    container.appendChild(assistDiv);
+  } catch (e) {
+    const errDiv = document.createElement('div');
+    errDiv.className = 'ai-msg error';
+    errDiv.textContent = e.message || 'Erreur';
+    container.appendChild(errDiv);
+  }
+  typing.remove();
+  btn.disabled = false;
+  container.scrollTop = container.scrollHeight;
+  input.focus();
+}
+
+async function clearAIChat(widgetId) {
+  await api('/ai/messages/' + widgetId, { method: 'DELETE' });
+  const container = document.getElementById('ai-messages-' + widgetId);
+  if (container) container.innerHTML = '';
+}
+
+function editAIConfig(widgetId) {
+  const page = dashboard.find(p => p.id === activePageId);
+  let widget;
+  page?.columns.forEach(c => c.widgets.forEach(w => { if (w.id === widgetId) widget = w; }));
+  if (!widget) return;
+  const cfg = widget.config || {};
+  showModal('Configuration IA', `
+    <div class="form-group">
+      <label>Provider</label>
+      <select id="ai-cfg-provider">
+        <option value="mistral" ${cfg.provider === 'mistral' ? 'selected' : ''}>Mistral</option>
+        <option value="openai" ${cfg.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
+        <option value="anthropic" ${cfg.provider === 'anthropic' ? 'selected' : ''}>Anthropic</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Cle API</label>
+      <input type="password" id="ai-cfg-key" value="${esc(cfg.apiKey || '')}" placeholder="Votre cle API">
+    </div>
+    <div class="form-group">
+      <label>Modele (optionnel)</label>
+      <input type="text" id="ai-cfg-model" value="${esc(cfg.model || '')}" placeholder="Laisser vide = modele par defaut">
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+        Mistral: mistral-small-latest, mistral-medium-latest, mistral-large-latest<br>
+        OpenAI: gpt-4o-mini, gpt-4o, gpt-4.1-mini<br>
+        Anthropic: claude-sonnet-4-20250514, claude-haiku-4-5-20251001
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Retention des messages (jours)</label>
+      <input type="number" id="ai-cfg-retention" value="${cfg.retentionDays || 30}" min="1" max="365">
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Les messages plus anciens sont automatiquement supprimes</div>
+    </div>
+  `, async () => {
+    const provider = document.getElementById('ai-cfg-provider').value;
+    const apiKey = document.getElementById('ai-cfg-key').value;
+    const model = document.getElementById('ai-cfg-model').value;
+    const retentionDays = parseInt(document.getElementById('ai-cfg-retention').value) || 30;
+    const newConfig = { ...cfg, provider, apiKey, model, retentionDays };
+    await api('/widgets/' + widgetId, { method: 'PUT', body: { config: newConfig } });
+    closeModal();
+    await loadDashboard();
+  });
+}
+
+// ─── Modal ────────────────────────────────────────────
+function showModal(title, content, onConfirm) {
+  const modal = document.getElementById('modal');
+  const actions = onConfirm ? `
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" style="width:auto" id="modal-confirm">Confirmer</button>
+    </div>` : `
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+    </div>`;
+
+  modal.innerHTML = `<h2>${title}</h2>${content}${actions}`;
+  document.getElementById('modal-overlay').classList.add('show');
+  if (onConfirm) {
+    document.getElementById('modal-confirm').addEventListener('click', onConfirm);
+  }
+  const firstInput = modal.querySelector('input, textarea, select');
+  if (firstInput) setTimeout(() => firstInput.focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+// ─── Toast ────────────────────────────────────────────
+function toast(msg, type = '') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ─── Helpers ──────────────────────────────────────────
+function esc(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+const ICON_COLORS = [
+  '#e94b2e','#38bdf8','#a855f7','#f59e0b','#10b981',
+  '#ec4899','#6366f1','#14b8a6','#f97316','#8b5cf6',
+  '#06b6d4','#ef4444','#84cc16','#d946ef','#0ea5e9'
+];
+
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function genIcon(title) {
+  const initials = (title || '?').split(/[\s\-_.\/]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  const letter = initials || '?';
+  const color = ICON_COLORS[hashStr(title || '') % ICON_COLORS.length];
+  const fontSize = letter.length > 1 ? 16 : 20;
+  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 42"><rect width="42" height="42" rx="12" fill="${color}"/><text x="21" y="${letter.length > 1 ? 27 : 28}" text-anchor="middle" fill="#fff" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="700" font-size="${fontSize}">${letter}</text></svg>`)}`;
+}
+
+function onFaviconLoad(img, title) {
+  if (img.naturalWidth <= 18 && img.naturalHeight <= 18) {
+    img.src = genIcon(title);
+  }
+}
+
+function onFaviconError(img, title) {
+  img.src = genIcon(title);
+}
+
+// ─── View modes ──────────────────────────────────────
+const VIEW_MODES = {
+  bookmarks: [
+    { key: '', label: 'Grille', icon: '&#9783;' },
+    { key: 'grid-sm', label: 'Grille compacte', icon: '&#9642;' },
+    { key: 'grid-lg', label: 'Grille large', icon: '&#9635;' },
+    { key: 'list', label: 'Liste', icon: '&#9776;' },
+    { key: 'icons', label: 'Icones seules', icon: '&#9673;' },
+  ],
+  rss: [
+    { key: '', label: 'Standard', icon: '&#9783;' },
+    { key: 'headlines', label: 'Titres seuls', icon: '&#9776;' },
+    { key: 'magazine', label: 'Magazine', icon: '&#9635;' },
+    { key: 'full', label: 'Images larges', icon: '&#9638;' },
+  ]
+};
+
+function toggleViewMode(event, widgetId, type) {
+  event.stopPropagation();
+  closeDropdowns();
+  const w = findWidget(widgetId);
+  const currentMode = w?.config?.viewMode || '';
+  const modes = VIEW_MODES[type] || [];
+
+  const rect = event.target.getBoundingClientRect();
+  const dropdown = document.createElement('div');
+  dropdown.className = 'dropdown context-menu';
+  dropdown.style.top = (rect.bottom + 4) + 'px';
+  dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+  dropdown.innerHTML = modes.map(m =>
+    `<div class="dropdown-item ${m.key === currentMode ? 'active' : ''}" style="${m.key === currentMode ? 'color:var(--accent);font-weight:600' : ''}" onclick="event.stopPropagation();setViewMode(${widgetId},'${m.key}')">
+      <span>${m.icon}</span> ${m.label}
+    </div>`
+  ).join('');
+
+  document.body.appendChild(dropdown);
+  setTimeout(() => document.addEventListener('click', closeDropdowns, { once: true }), 10);
+}
+
+async function setViewMode(widgetId, mode) {
+  closeDropdowns();
+  const w = findWidget(widgetId);
+  if (!w) return;
+  const newConfig = { ...w.config, viewMode: mode };
+  await api(`/widgets/${widgetId}`, { method: 'PUT', body: { config: newConfig } });
+  w.config = newConfig;
+  widgetPages[widgetId] = 0;
+  renderPage();
+}
+
+// ─── RSS Tooltip ─────────────────────────────────────
+let rssTooltipTimer = null;
+
+function showRSSTooltip(event, el) {
+  const tooltip = document.getElementById('rss-tooltip');
+  const title = el.dataset.rssTitle || '';
+  const snippet = el.dataset.rssSnippet || '';
+  const date = el.dataset.rssDate || '';
+  const img = el.dataset.rssImg || '';
+
+  if (!snippet && !img) return;
+
+  document.getElementById('rss-tooltip-title').textContent = title;
+  document.getElementById('rss-tooltip-snippet').textContent = snippet;
+  document.getElementById('rss-tooltip-date').textContent = date;
+
+  const imgEl = document.getElementById('rss-tooltip-img');
+  if (img) {
+    imgEl.src = img;
+    imgEl.style.display = 'block';
+    imgEl.onerror = () => imgEl.style.display = 'none';
+  } else {
+    imgEl.style.display = 'none';
+  }
+
+  clearTimeout(rssTooltipTimer);
+  rssTooltipTimer = setTimeout(() => {
+    positionTooltip(event);
+    tooltip.classList.add('show');
+  }, 350);
+}
+
+function moveRSSTooltip(event) {
+  const tooltip = document.getElementById('rss-tooltip');
+  if (tooltip.classList.contains('show')) {
+    positionTooltip(event);
+  }
+}
+
+function positionTooltip(event) {
+  const tooltip = document.getElementById('rss-tooltip');
+  const pad = 16;
+  let x = event.clientX + pad;
+  let y = event.clientY + pad;
+
+  const w = tooltip.offsetWidth || 380;
+  const h = tooltip.offsetHeight || 200;
+
+  if (x + w > window.innerWidth - pad) x = event.clientX - w - pad;
+  if (y + h > window.innerHeight - pad) y = event.clientY - h - pad;
+  if (x < pad) x = pad;
+  if (y < pad) y = pad;
+
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+}
+
+function hideRSSTooltip() {
+  clearTimeout(rssTooltipTimer);
+  document.getElementById('rss-tooltip').classList.remove('show');
+}
+
+// ─── Keyboard shortcuts ──────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeModal(); closeDropdowns(); }
+});
+
+// ─── Init on load ─────────────────────────────────────
+if (!checkPublicPage()) {
+  if (token) initApp();
+}
+
+window.addEventListener('hashchange', () => {
+  if (checkPublicPage()) {
+    document.getElementById('app').style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>

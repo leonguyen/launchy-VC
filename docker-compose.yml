@@ -1,0 +1,12 @@
+services:
+  launchy:
+    build: .
+    container_name: launchy
+    ports:
+      - "${PORT:-3080}:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET}
+    restart: unless-stopped

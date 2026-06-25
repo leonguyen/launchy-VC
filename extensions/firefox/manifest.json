@@ -1,0 +1,24 @@
+{
+  "manifest_version": 2,
+  "name": "Launchy - Add to Dashboard",
+  "version": "1.2.0",
+  "description": "Ajoutez rapidement le site actuel à votre dashboard Launchy",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "launchy@progerance.com",
+      "strict_min_version": "109.0"
+    }
+  },
+  "permissions": ["activeTab", "<all_urls>", "storage"],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icons/icon-48.svg",
+      "96": "icons/icon-96.svg"
+    }
+  },
+  "icons": {
+    "48": "icons/icon-48.svg",
+    "96": "icons/icon-96.svg"
+  }
+}
