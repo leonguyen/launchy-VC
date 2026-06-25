@@ -13,6 +13,7 @@ Deploy it on your own server with Docker, keep full control of your data, and en
 
 <p>
   <a href="https://git.progerance.fr/Progerance/launchy/raw/branch/main/docs/images/features-overview.jpg"><img src="docs/images/features-overview-thumb.jpg" alt="Features overview" height="120"></a>
+  <a href="https://git.progerance.fr/Progerance/launchy/raw/branch/main/docs/images/extension-overview.jpg"><img src="docs/images/extension-overview-thumb.jpg" alt="Browser extension" height="120"></a>
 </p>
 
 </div>
