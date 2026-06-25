@@ -12,7 +12,7 @@ Deploy it on your own server with Docker, keep full control of your data, and en
 ![Launchy Dashboard](docs/images/hero-banner.jpg)
 
 <p>
-  <a href="docs/images/features-overview.jpg"><img src="docs/images/features-overview-thumb.jpg" alt="Features overview" height="120"></a>
+  <a href="https://git.progerance.fr/Progerance/launchy/raw/branch/main/docs/images/features-overview.jpg"><img src="docs/images/features-overview-thumb.jpg" alt="Features overview" height="120"></a>
 </p>
 
 </div>
