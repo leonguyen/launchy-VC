@@ -11,6 +11,12 @@ Deploy it on your own server with Docker, keep full control of your data, and en
 
 ![Launchy Dashboard](docs/images/hero-banner.jpg)
 
+<p>
+  <a href="docs/images/features-overview.jpg"><img src="docs/images/features-overview-thumb.jpg" alt="Features overview" height="120"></a>
+  <!-- Add more thumbnails here: -->
+  <!-- <a href="docs/images/screenshot-xxx.jpg"><img src="docs/images/screenshot-xxx-thumb.jpg" alt="Description" height="120"></a> -->
+</p>
+
 </div>
 
 ## Features
@@ -31,25 +37,6 @@ Deploy it on your own server with Docker, keep full control of your data, and en
 - **Browser extensions** — Firefox (WebExtension) and Chromium (Chrome/Brave/Edge) to add bookmarks from any page
 - **Link target** — user preference to open links in new tab or same page
 - **Responsive** — works on desktop and tablet
-
-## Screenshots
-
-<details>
-<summary>Click to expand screenshots</summary>
-
-| Dark Theme | Light Theme |
-|:---:|:---:|
-| ![Dark theme](docs/images/screenshot-dark.jpg) | ![Light theme](docs/images/screenshot-light.jpg) |
-
-| RSS Reader | AI Chat | Weather |
-|:---:|:---:|:---:|
-| ![RSS](docs/images/screenshot-rss.jpg) | ![AI Chat](docs/images/screenshot-ai.jpg) | ![Weather](docs/images/screenshot-weather.jpg) |
-
-| Icon Picker | Browser Extension |
-|:---:|:---:|
-| ![Icons](docs/images/screenshot-icons.jpg) | ![Extension](docs/images/screenshot-extension.jpg) |
-
-</details>
 
 ## Quick Start
 
