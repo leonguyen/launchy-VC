@@ -1,10 +1,17 @@
+<div align="center">
+
 # Launchy
 
 **Your self-hosted launch page.**
 
-Launchy is a modern, fully self-hosted dashboard that replaces services like start.me or iGoogle. Deploy it on your own server with Docker, keep full control of your data, and enjoy a polished, premium UI.
+Launchy is a modern, fully self-hosted dashboard that replaces services like start.me or iGoogle.
+Deploy it on your own server with Docker, keep full control of your data, and enjoy a polished, premium UI.
 
 ![Launchy](https://img.shields.io/badge/license-GPL--3.0-blue) ![Node](https://img.shields.io/badge/node-20+-green) ![Docker](https://img.shields.io/badge/docker-ready-blue)
+
+![Launchy Dashboard](docs/images/hero-banner.jpg)
+
+</div>
 
 ## Features
 
@@ -24,6 +31,25 @@ Launchy is a modern, fully self-hosted dashboard that replaces services like sta
 - **Browser extensions** — Firefox (WebExtension) and Chromium (Chrome/Brave/Edge) to add bookmarks from any page
 - **Link target** — user preference to open links in new tab or same page
 - **Responsive** — works on desktop and tablet
+
+## Screenshots
+
+<details>
+<summary>Click to expand screenshots</summary>
+
+| Dark Theme | Light Theme |
+|:---:|:---:|
+| ![Dark theme](docs/images/screenshot-dark.jpg) | ![Light theme](docs/images/screenshot-light.jpg) |
+
+| RSS Reader | AI Chat | Weather |
+|:---:|:---:|:---:|
+| ![RSS](docs/images/screenshot-rss.jpg) | ![AI Chat](docs/images/screenshot-ai.jpg) | ![Weather](docs/images/screenshot-weather.jpg) |
+
+| Icon Picker | Browser Extension |
+|:---:|:---:|
+| ![Icons](docs/images/screenshot-icons.jpg) | ![Extension](docs/images/screenshot-extension.jpg) |
+
+</details>
 
 ## Quick Start
 
