@@ -13,8 +13,6 @@ Deploy it on your own server with Docker, keep full control of your data, and en
 
 <p>
   <a href="docs/images/features-overview.jpg"><img src="docs/images/features-overview-thumb.jpg" alt="Features overview" height="120"></a>
-  <!-- Add more thumbnails here: -->
-  <!-- <a href="docs/images/screenshot-xxx.jpg"><img src="docs/images/screenshot-xxx-thumb.jpg" alt="Description" height="120"></a> -->
 </p>
 
 </div>
