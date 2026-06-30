@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -718,6 +718,10 @@ body.col-resizing * { cursor: col-resize !important; }
       <span id="toggle-text">Pas encore de compte ?</span>
       <a id="toggle-link" onclick="toggleAuthMode()">Creer un compte</a>
     </div>
+    <div class="login-lang" style="display:flex;justify-content:center;gap:8px;margin-top:12px">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="setLanguage('en')" style="padding:4px 10px;font-size:12px">English</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="setLanguage('fr')" style="padding:4px 10px;font-size:12px">Français</button>
+    </div>
   </div>
 </div>
 
@@ -732,9 +736,9 @@ body.col-resizing * { cursor: col-resize !important; }
   <div class="topbar">
     <img src="/logo.png" alt="Launchy" class="topbar-logo">
     <div class="tabs" id="tabs"></div>
-    <div class="tab-add" onclick="addPage()" title="Nouvelle page">+</div>
+    <div class="tab-add" onclick="addPage()" title="New page">+</div>
     <div class="topbar-actions">
-      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Changer le theme"></button>
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Change theme"></button>
       <div class="user-menu" id="user-menu" onclick="showUserMenu(event)"></div>
     </div>
   </div>
@@ -772,6 +776,74 @@ let sortableInstances = [];
 let clockIntervals = [];
 let widgetPages = {};
 
+// ─── i18n ────────────────────────────────────────────
+let _translations = {};
+let _currentLang = 'en';
+
+function t(key, params) {
+  let str = _translations[key] || key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      str = str.replaceAll('{' + k + '}', v);
+    }
+  }
+  return str;
+}
+
+function getLang() {
+  const stored = localStorage.getItem('launchy_lang');
+  if (stored) return stored;
+  const browserLang = navigator.language?.split('-')[0];
+  if (['fr', 'en'].includes(browserLang)) return browserLang;
+  return 'en';
+}
+
+async function loadTranslations(lang) {
+  try {
+    const res = await fetch('/lang/' + lang + '.json');
+    if (!res.ok) throw new Error('not found');
+    _translations = await res.json();
+    _currentLang = lang;
+    localStorage.setItem('launchy_lang', lang);
+    document.documentElement.lang = lang;
+  } catch {
+    if (lang !== 'en') return loadTranslations('en');
+  }
+}
+
+async function setLanguage(lang) {
+  await loadTranslations(lang);
+  if (token) {
+    try { await api('/auth/language', { method: 'PUT', body: { language: lang } }); } catch {}
+  }
+  updateLoginScreen();
+  if (currentUser) {
+    renderTabs();
+    renderPage();
+    showUserMenu._lastLang = lang;
+  }
+}
+
+function getLocale() {
+  return _currentLang === 'fr' ? 'fr-FR' : 'en-US';
+}
+
+function updateLoginScreen() {
+  const sub = document.getElementById('login-subtitle');
+  if (sub) sub.textContent = t(isRegisterMode ? 'login.subtitle.register' : 'login.subtitle');
+  const btn = document.getElementById('login-btn');
+  if (btn) btn.textContent = t(isRegisterMode ? 'login.btn.register' : 'login.btn');
+  const txt = document.getElementById('toggle-text');
+  if (txt) txt.textContent = t(isRegisterMode ? 'login.toggle.text.register' : 'login.toggle.text');
+  const lnk = document.getElementById('toggle-link');
+  if (lnk) lnk.textContent = t(isRegisterMode ? 'login.toggle.link.register' : 'login.toggle.link');
+  const labels = document.querySelectorAll('#login-form .form-group label');
+  if (labels[0]) labels[0].textContent = t('login.label.username');
+  if (labels[1]) labels[1].textContent = t('login.label.password');
+  document.querySelector('.tab-add')?.setAttribute('title', t('topbar.addPage'));
+  document.getElementById('theme-btn')?.setAttribute('title', t('topbar.themeToggle'));
+}
+
 // ─── API helper ───────────────────────────────────────
 async function api(path, opts = {}) {
   const res = await fetch('/api' + path, {
@@ -783,9 +855,9 @@ async function api(path, opts = {}) {
     },
     body: opts.body ? JSON.stringify(opts.body) : undefined
   });
-  if (res.status === 401) { logout(); throw new Error('Non authentifie'); }
+  if (res.status === 401) { logout(); throw new Error(t('error.notAuthenticated')); }
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Erreur');
+  if (!res.ok) throw new Error(t(data.error || 'error.generic'));
   return data;
 }
 
@@ -803,15 +875,15 @@ function checkPublicPage() {
 async function loadPublicPage(pageId) {
   try {
     const res = await fetch('/api/public/page/' + pageId);
-    if (!res.ok) throw new Error('Page non trouvée');
+    if (!res.ok) throw new Error(t('error.pageNotFound'));
     const page = await res.json();
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'none';
     document.getElementById('public-view').style.display = 'block';
-    document.getElementById('public-banner').textContent = `${page.title} — partage par ${page.owner_name}`;
+    document.getElementById('public-banner').textContent = `${page.title} — ${t('page.sharedBy', {owner: page.owner_name})}`;
     renderPublicPage(page);
   } catch {
-    document.getElementById('public-view').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Page non trouvee ou non publique.</div>';
+    document.getElementById('public-view').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">' + t('page.notFound') + '</div>';
     document.getElementById('public-view').style.display = 'block';
     document.getElementById('login-screen').style.display = 'none';
   }
@@ -837,12 +909,7 @@ let isRegisterMode = false;
 
 function toggleAuthMode() {
   isRegisterMode = !isRegisterMode;
-  document.getElementById('login-subtitle').textContent = isRegisterMode
-    ? 'Creez votre compte pour commencer'
-    : 'Connectez-vous pour acceder a votre tableau de bord';
-  document.getElementById('login-btn').textContent = isRegisterMode ? 'Creer le compte' : 'Se connecter';
-  document.getElementById('toggle-text').textContent = isRegisterMode ? 'Deja un compte ?' : 'Pas encore de compte ?';
-  document.getElementById('toggle-link').textContent = isRegisterMode ? 'Se connecter' : 'Creer un compte';
+  updateLoginScreen();
   document.getElementById('login-error').style.display = 'none';
 }
 
@@ -852,7 +919,9 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   const password = document.getElementById('login-pass').value;
   try {
     const endpoint = isRegisterMode ? '/auth/register' : '/auth/login';
-    const data = await api(endpoint, { method: 'POST', body: { username, password } });
+    const body = { username, password };
+    if (isRegisterMode) body.language = _currentLang;
+    const data = await api(endpoint, { method: 'POST', body });
     token = data.token;
     currentUser = data.user;
     localStorage.setItem('launchy_token', token);
@@ -878,6 +947,9 @@ function logout() {
 async function initApp() {
   try {
     currentUser = await api('/auth/me');
+    if (currentUser.language && currentUser.language !== _currentLang) {
+      await loadTranslations(currentUser.language);
+    }
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('public-view').style.display = 'none';
     document.getElementById('app').style.display = 'block';
@@ -975,7 +1047,7 @@ function switchSharedPage(pageId) {
 }
 
 async function addPage() {
-  const title = prompt('Nom de la nouvelle page :');
+  const title = prompt(t('page.addPrompt'));
   if (!title) return;
   const page = await api('/pages', { method: 'POST', body: { title } });
   dashboard.push({ ...page, columns: [] });
@@ -987,7 +1059,7 @@ async function addPage() {
 
 async function renamePage(pageId) {
   const page = dashboard.find(p => p.id === pageId);
-  const title = prompt('Nouveau nom :', page.title);
+  const title = prompt(t('page.renamePrompt'), page.title);
   if (!title || title === page.title) return;
   await api(`/pages/${pageId}`, { method: 'PUT', body: { title } });
   page.title = title;
@@ -995,7 +1067,7 @@ async function renamePage(pageId) {
 }
 
 async function deletePage(pageId) {
-  if (!confirm('Supprimer cette page et tout son contenu ?')) return;
+  if (!confirm(t('page.deleteConfirm'))) return;
   await api(`/pages/${pageId}`, { method: 'DELETE' });
   dashboard = dashboard.filter(p => p.id !== pageId);
   if (activePageId === pageId) activePageId = dashboard[0]?.id;
@@ -1016,14 +1088,14 @@ function pageContextMenu(event, pageId) {
   dropdown.style.top = event.clientY + 'px';
   dropdown.style.left = event.clientX + 'px';
   dropdown.innerHTML = `
-    <div class="dropdown-item" onclick="renamePage(${pageId});closeDropdowns()">Renommer</div>
-    <div class="dropdown-item" onclick="sharePageDialog(${pageId});closeDropdowns()">Partager</div>
+    <div class="dropdown-item" onclick="renamePage(${pageId});closeDropdowns()">${t('context.rename')}</div>
+    <div class="dropdown-item" onclick="sharePageDialog(${pageId});closeDropdowns()">${t('context.share')}</div>
     <div class="dropdown-item" onclick="togglePagePublic(${pageId});closeDropdowns()">
-      ${page.is_public ? 'Rendre privee' : 'Rendre publique'}
+      ${page.is_public ? t('context.makePrivate') : t('context.makePublic')}
     </div>
-    ${page.is_public ? `<div class="dropdown-item" onclick="copyPublicLink(${pageId});closeDropdowns()">Copier le lien public</div>` : ''}
+    ${page.is_public ? `<div class="dropdown-item" onclick="copyPublicLink(${pageId});closeDropdowns()">${t('context.copyPublicLink')}</div>` : ''}
     <div class="dropdown-sep"></div>
-    ${dashboard.length > 1 ? `<div class="dropdown-item danger" onclick="deletePage(${pageId});closeDropdowns()">Supprimer</div>` : ''}
+    ${dashboard.length > 1 ? `<div class="dropdown-item danger" onclick="deletePage(${pageId});closeDropdowns()">${t('context.delete')}</div>` : ''}
   `;
   document.body.appendChild(dropdown);
   setTimeout(() => document.addEventListener('click', closeDropdowns, { once: true }), 10);
@@ -1035,12 +1107,12 @@ async function togglePagePublic(pageId) {
   await api(`/pages/${pageId}/visibility`, { method: 'PUT', body: { is_public: newVal } });
   page.is_public = newVal ? 1 : 0;
   renderTabs();
-  toast(newVal ? 'Page rendue publique' : 'Page rendue privee', 'success');
+  toast(newVal ? t('page.madePublic') : t('page.madePrivate'), 'success');
 }
 
 function copyPublicLink(pageId) {
   const url = `${location.origin}/#/public/${pageId}`;
-  navigator.clipboard.writeText(url).then(() => toast('Lien copie !', 'success'));
+  navigator.clipboard.writeText(url).then(() => toast(t('page.linkCopied'), 'success'));
 }
 
 async function sharePageDialog(pageId) {
@@ -1049,21 +1121,21 @@ async function sharePageDialog(pageId) {
     ? data.shares.map(s => `
       <div class="share-user-row">
         <span>${esc(s.username)}</span>
-        <button class="btn btn-ghost btn-sm" onclick="unsharePage(${pageId}, ${s.shared_with_user_id})">Retirer</button>
+        <button class="btn btn-ghost btn-sm" onclick="unsharePage(${pageId}, ${s.shared_with_user_id})">${t('share.remove')}</button>
       </div>
     `).join('')
-    : '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Aucun partage</div>';
+    : '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">' + t('share.noShares') + '</div>';
 
-  showModal('Partager la page', `
+  showModal(t('share.title'), `
     <div class="modal-section">
-      <h3>Partager avec un utilisateur</h3>
+      <h3>${t('share.withUser')}</h3>
       <div style="display:flex;gap:8px">
-        <input type="text" id="share-username" placeholder="Nom d'utilisateur">
-        <button class="btn btn-outline btn-sm" onclick="doSharePage(${pageId})" style="white-space:nowrap">Partager</button>
+        <input type="text" id="share-username" placeholder="${t('share.userPlaceholder')}">
+        <button class="btn btn-outline btn-sm" onclick="doSharePage(${pageId})" style="white-space:nowrap">${t('share.btn')}</button>
       </div>
     </div>
     <div class="modal-section">
-      <h3>Utilisateurs avec acces</h3>
+      <h3>${t('share.usersWithAccess')}</h3>
       <div id="share-list">${sharesHtml}</div>
     </div>
   `, null);
@@ -1074,14 +1146,14 @@ async function doSharePage(pageId) {
   if (!username) return;
   try {
     await api(`/pages/${pageId}/share`, { method: 'POST', body: { username } });
-    toast('Page partagee avec ' + username, 'success');
+    toast(t('share.success', {username}), 'success');
     sharePageDialog(pageId);
   } catch (err) { toast(err.message, 'error'); }
 }
 
 async function unsharePage(pageId, userId) {
   await api(`/pages/${pageId}/share/${userId}`, { method: 'DELETE' });
-  toast('Partage retire', 'success');
+  toast(t('share.removed'), 'success');
   sharePageDialog(pageId);
 }
 
@@ -1109,8 +1181,8 @@ function renderPage() {
         <h3 ${readOnly ? '' : `ondblclick="renameColumn(${col.id})"`}>${esc(col.title)}</h3>
         ${readOnly ? '' : `
         <div class="col-actions">
-          <button class="btn btn-ghost btn-sm" onclick="addWidget(${col.id})" title="Ajouter un widget">+</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteColumn(${col.id})" title="Supprimer">×</button>
+          <button class="btn btn-ghost btn-sm" onclick="addWidget(${col.id})" title="${t('column.addWidget')}">+</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteColumn(${col.id})" title="${t('column.delete')}">×</button>
         </div>`}
       </div>
       <div class="widgets-container" data-col-id="${col.id}">
@@ -1118,7 +1190,7 @@ function renderPage() {
       </div>
       ${readOnly ? '' : `<div class="column-resize-handle" onmousedown="startColResize(event, ${col.id})"></div>`}
     </div>
-  `).join('') + `</div>` + (readOnly ? '' : '<div class="add-column-btn" onclick="addColumn()" title="Ajouter une colonne">+</div>');
+  `).join('') + `</div>` + (readOnly ? '' : '<div class="add-column-btn" onclick="addColumn()" title="' + t('column.addColumn') + '">+</div>');
 
   if (!readOnly) initSortables();
   loadRSSFeeds(page);
@@ -1162,16 +1234,16 @@ function renderWidget(w, readOnly = false) {
     body = renderBookmarkPage(w, readOnly);
   } else if (w.type === 'rss') {
     const _ds = getRSSDisplaySettings(w);
-    body = `<div class="rss-items ${rssContainerClasses(_ds)}" id="rss-${w.id}"><div class="weather-loading">Chargement...</div></div>`;
+    body = `<div class="rss-items ${rssContainerClasses(_ds)}" id="rss-${w.id}"><div class="weather-loading">${t('widget.loading')}</div></div>`;
   } else if (w.type === 'notes') {
     const content = w.config?.content || '';
     if (readOnly) {
       body = `<div style="font-size:13px;line-height:1.6;white-space:pre-wrap">${esc(content)}</div>`;
     } else {
-      body = `<textarea class="notes-content" data-widget-id="${w.id}" onblur="saveNotes(${w.id}, this.value)" placeholder="Ecrivez ici...">${esc(content)}</textarea>`;
+      body = `<textarea class="notes-content" data-widget-id="${w.id}" onblur="saveNotes(${w.id}, this.value)" placeholder="${t('widget.notes.placeholder')}">${esc(content)}</textarea>`;
     }
   } else if (w.type === 'weather') {
-    body = `<div id="weather-${w.id}" class="weather-loading">Chargement...</div>`;
+    body = `<div id="weather-${w.id}" class="weather-loading">${t('widget.loading')}</div>`;
   } else if (w.type === 'clock') {
     const tz = w.config?.timezone || '';
     const f24 = w.config?.format24h !== false;
@@ -1183,9 +1255,9 @@ function renderWidget(w, readOnly = false) {
   } else if (w.type === 'search') {
     const engine = w.config?.engine || 'google';
     const customUrl = w.config?.customUrl || '';
-    const names = { google: 'Google', duckduckgo: 'DuckDuckGo', bing: 'Bing', custom: 'Personnalise' };
+    const names = { google: 'Google', duckduckgo: 'DuckDuckGo', bing: 'Bing', custom: t('form.custom') };
     body = `<form class="search-form" onsubmit="doSearch(event, '${engine}', '${esc(customUrl)}')">
-      <input type="text" placeholder="Rechercher..." required>
+      <input type="text" placeholder="${t('widget.search.placeholder')}" required>
       <button type="submit">Go</button>
     </form>
     <div class="search-engine-label">${names[engine] || engine}</div>`;
@@ -1195,22 +1267,22 @@ function renderWidget(w, readOnly = false) {
     if (url) {
       body = `<iframe class="embed-frame" src="${esc(url)}" style="height:${embedH}px" sandbox="allow-scripts allow-same-origin allow-popups" loading="lazy"></iframe>`;
     } else {
-      body = `<div style="padding:12px;color:var(--text-muted);font-size:13px">Aucune URL configuree</div>`;
+      body = `<div style="padding:12px;color:var(--text-muted);font-size:13px">${t('widget.embed.noUrl')}</div>`;
     }
   } else if (w.type === 'ai') {
     const hasKey = !!w.config?.apiKey;
     if (!hasKey && !readOnly) {
       body = `<div class="ai-no-key">
         <div style="font-size:28px;margin-bottom:8px">🤖</div>
-        <div>Configurez votre cle API pour commencer</div>
-        <button class="btn btn-primary btn-sm" onclick="editAIConfig(${w.id})" style="margin-top:10px">Configurer</button>
+        <div>${t('widget.ai.noKey')}</div>
+        <button class="btn btn-primary btn-sm" onclick="editAIConfig(${w.id})" style="margin-top:10px">${t('widget.ai.configure')}</button>
       </div>`;
     } else {
-      const provLabel = { mistral: 'Mistral', openai: 'OpenAI', anthropic: 'Anthropic' }[w.config?.provider] || 'IA';
+      const provLabel = { mistral: 'Mistral', openai: 'OpenAI', anthropic: 'Anthropic' }[w.config?.provider] || t('widget.ai.defaultLabel');
       body = `<div class="ai-chat" id="ai-chat-${w.id}">
         <div class="ai-messages" id="ai-messages-${w.id}"></div>
         <form class="ai-input-row" onsubmit="sendAIMessage(event, ${w.id})">
-          <input type="text" id="ai-input-${w.id}" placeholder="Ecrivez un message..." autocomplete="off">
+          <input type="text" id="ai-input-${w.id}" placeholder="${t('widget.ai.placeholder')}" autocomplete="off">
           <button type="submit" id="ai-send-${w.id}">&#10148;</button>
         </form>
       </div>`;
@@ -1218,20 +1290,20 @@ function renderWidget(w, readOnly = false) {
   }
 
   const viewBtn = w.type === 'bookmarks'
-    ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();toggleViewMode(event,${w.id},'${w.type}')" title="Mode d'affichage" style="font-size:14px">&#9783;</button>`
+    ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();toggleViewMode(event,${w.id},'${w.type}')" title="${t('widget.action.viewMode')}" style="font-size:14px">&#9783;</button>`
     : '';
 
   const editActions = readOnly ? '' : `
     <div class="widget-actions">
       ${viewBtn}
-      ${w.type === 'rss' ? `<button class="btn btn-ghost btn-sm" onclick="openRSSSettings(${w.id})" title="Parametres RSS">&#9998;</button>` : ''}
-      ${w.type === 'weather' ? `<button class="btn btn-ghost btn-sm" onclick="editWeatherCity(${w.id})" title="Modifier la ville">&#9998;</button>` : ''}
-      ${w.type === 'search' ? `<button class="btn btn-ghost btn-sm" onclick="editSearchEngine(${w.id})" title="Modifier">&#9998;</button>` : ''}
-      ${w.type === 'embed' ? `<button class="btn btn-ghost btn-sm" onclick="editEmbedUrl(${w.id})" title="Modifier l'URL">&#9998;</button>` : ''}
-      ${w.type === 'clock' ? `<button class="btn btn-ghost btn-sm" onclick="editClockConfig(${w.id})" title="Modifier">&#9998;</button>` : ''}
-      ${w.type === 'ai' ? `<button class="btn btn-ghost btn-sm" onclick="editAIConfig(${w.id})" title="Configurer l'IA">&#9998;</button>` : ''}
-      ${w.type === 'ai' ? `<button class="btn btn-ghost btn-sm" onclick="clearAIChat(${w.id})" title="Effacer la conversation">&#128465;</button>` : ''}
-      <button class="btn btn-ghost btn-sm" onclick="deleteWidget(${w.id})" title="Supprimer">×</button>
+      ${w.type === 'rss' ? `<button class="btn btn-ghost btn-sm" onclick="openRSSSettings(${w.id})" title="${t('widget.action.rssSettings')}">&#9998;</button>` : ''}
+      ${w.type === 'weather' ? `<button class="btn btn-ghost btn-sm" onclick="editWeatherCity(${w.id})" title="${t('widget.action.editCity')}">&#9998;</button>` : ''}
+      ${w.type === 'search' ? `<button class="btn btn-ghost btn-sm" onclick="editSearchEngine(${w.id})" title="${t('widget.action.edit')}">&#9998;</button>` : ''}
+      ${w.type === 'embed' ? `<button class="btn btn-ghost btn-sm" onclick="editEmbedUrl(${w.id})" title="${t('widget.action.editUrl')}">&#9998;</button>` : ''}
+      ${w.type === 'clock' ? `<button class="btn btn-ghost btn-sm" onclick="editClockConfig(${w.id})" title="${t('widget.action.edit')}">&#9998;</button>` : ''}
+      ${w.type === 'ai' ? `<button class="btn btn-ghost btn-sm" onclick="editAIConfig(${w.id})" title="${t('widget.action.configAI')}">&#9998;</button>` : ''}
+      ${w.type === 'ai' ? `<button class="btn btn-ghost btn-sm" onclick="clearAIChat(${w.id})" title="${t('widget.action.clearChat')}">&#128465;</button>` : ''}
+      <button class="btn btn-ghost btn-sm" onclick="deleteWidget(${w.id})" title="${t('widget.action.delete')}">×</button>
     </div>`;
 
   return `
@@ -1386,65 +1458,65 @@ function initSortableForWidget(widgetId) {
 
 // ─── Columns ──────────────────────────────────────────
 function addColumn() {
-  showModal('Nouvelle colonne', `
+  showModal(t('column.new.title'), `
     <div class="form-group">
-      <label>Type de contenu</label>
+      <label>${t('column.new.contentType')}</label>
       <div id="col-type-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px">
         <div class="col-type-card" data-type="bookmarks" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--accent);border-radius:8px;cursor:pointer;text-align:center;background:rgba(233,75,46,0.08)">
           <div style="font-size:24px;margin-bottom:4px">⭐</div>
-          <div style="font-size:13px;font-weight:600">Favoris</div>
-          <div style="font-size:11px;color:var(--text-muted)">Grille de liens</div>
+          <div style="font-size:13px;font-weight:600">${t('widget.type.bookmarks')}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${t('widget.type.bookmarks.desc')}</div>
         </div>
         <div class="col-type-card" data-type="rss" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
           <div style="font-size:24px;margin-bottom:4px">📰</div>
-          <div style="font-size:13px;font-weight:600">Actualites</div>
-          <div style="font-size:11px;color:var(--text-muted)">Flux RSS en direct</div>
+          <div style="font-size:13px;font-weight:600">${t('widget.type.rss')}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${t('widget.type.rss.desc')}</div>
         </div>
         <div class="col-type-card" data-type="notes" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
           <div style="font-size:24px;margin-bottom:4px">📝</div>
-          <div style="font-size:13px;font-weight:600">Notes</div>
-          <div style="font-size:11px;color:var(--text-muted)">Texte libre</div>
+          <div style="font-size:13px;font-weight:600">${t('widget.type.notes')}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${t('widget.type.notes.desc')}</div>
         </div>
         <div class="col-type-card" data-type="weather" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
           <div style="font-size:24px;margin-bottom:4px">🌤️</div>
-          <div style="font-size:13px;font-weight:600">Meteo</div>
-          <div style="font-size:11px;color:var(--text-muted)">Previsions locales</div>
+          <div style="font-size:13px;font-weight:600">${t('widget.type.weather')}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${t('widget.type.weather.desc')}</div>
         </div>
         <div class="col-type-card" data-type="clock" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
           <div style="font-size:24px;margin-bottom:4px">🕐</div>
-          <div style="font-size:13px;font-weight:600">Horloge</div>
-          <div style="font-size:11px;color:var(--text-muted)">Heure en direct</div>
+          <div style="font-size:13px;font-weight:600">${t('widget.type.clock')}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${t('widget.type.clock.desc')}</div>
         </div>
         <div class="col-type-card" data-type="search" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
           <div style="font-size:24px;margin-bottom:4px">🔍</div>
-          <div style="font-size:13px;font-weight:600">Recherche</div>
-          <div style="font-size:11px;color:var(--text-muted)">Barre de recherche</div>
+          <div style="font-size:13px;font-weight:600">${t('widget.type.search')}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${t('widget.type.search.desc')}</div>
         </div>
         <div class="col-type-card" data-type="embed" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
           <div style="font-size:24px;margin-bottom:4px">🖼️</div>
-          <div style="font-size:13px;font-weight:600">Embed</div>
-          <div style="font-size:11px;color:var(--text-muted)">iFrame externe</div>
+          <div style="font-size:13px;font-weight:600">${t('widget.type.embed')}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${t('widget.type.embed.desc')}</div>
         </div>
         <div class="col-type-card" data-type="ai" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
           <div style="font-size:24px;margin-bottom:4px">🤖</div>
-          <div style="font-size:13px;font-weight:600">IA Chat</div>
-          <div style="font-size:11px;color:var(--text-muted)">Mistral, OpenAI, Anthropic</div>
+          <div style="font-size:13px;font-weight:600">${t('widget.type.ai')}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${t('widget.type.ai.desc')}</div>
         </div>
         <div class="col-type-card" data-type="empty" onclick="selectColType(this)" style="padding:14px 12px;border:2px solid var(--border);border-radius:8px;cursor:pointer;text-align:center">
           <div style="font-size:24px;margin-bottom:4px">📦</div>
-          <div style="font-size:13px;font-weight:600">Vide</div>
-          <div style="font-size:11px;color:var(--text-muted)">A remplir plus tard</div>
+          <div style="font-size:13px;font-weight:600">${t('widget.type.empty')}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${t('widget.type.empty.desc')}</div>
         </div>
       </div>
     </div>
     <div class="form-group">
-      <label>Nom de la colonne</label>
-      <input type="text" id="col-title" placeholder="Ma colonne" required>
+      <label>${t('column.new.name')}</label>
+      <input type="text" id="col-title" placeholder="${t('column.new.placeholder')}" required>
     </div>
     <div id="col-extra-fields"></div>
     <input type="hidden" id="col-widget-type" value="bookmarks">
   `, async () => {
-    const title = document.getElementById('col-title').value || 'Nouvelle colonne';
+    const title = document.getElementById('col-title').value || t('column.default');
     const type = document.getElementById('col-widget-type').value;
     const col = await api(`/pages/${activePageId}/columns`, { method: 'POST', body: { title } });
     if (type !== 'empty') {
@@ -1477,7 +1549,7 @@ function selectColType(el) {
 }
 
 function updateColTypeSelection(type) {
-  const defaults = { bookmarks:'Mes favoris', rss:'Actualites', notes:'Notes', weather:'Meteo', clock:'Horloge', search:'Recherche', embed:'Embed', ai:'Assistant IA', empty:'Nouvelle colonne' };
+  const defaults = { bookmarks:t('widget.default.bookmarks'), rss:t('widget.default.rss'), notes:t('widget.default.notes'), weather:t('widget.default.weather'), clock:t('widget.default.clock'), search:t('widget.default.search'), embed:t('widget.default.embed'), ai:t('widget.default.ai'), empty:t('widget.default.empty') };
   const titleInput = document.getElementById('col-title');
   if (titleInput && (!titleInput.value || Object.values(defaults).includes(titleInput.value))) {
     titleInput.value = defaults[type] || '';
@@ -1486,19 +1558,19 @@ function updateColTypeSelection(type) {
   if (!extra) return;
   let html = '';
   if (type === 'rss') {
-    html = '<div class="form-group"><label>URL du flux RSS</label><input type="url" id="col-rss-url" placeholder="https://example.com/feed.xml"></div>';
+    html = '<div class="form-group"><label>' + t('form.rssUrl') + '</label><input type="url" id="col-rss-url" placeholder="https://example.com/feed.xml"></div>';
   } else if (type === 'weather') {
-    html = '<div class="form-group"><label>Ville</label><input type="text" id="col-weather-city" placeholder="Paris"></div>';
+    html = '<div class="form-group"><label>' + t('form.city') + '</label><input type="text" id="col-weather-city" placeholder="Paris"></div>';
   } else if (type === 'clock') {
-    html = '<div class="form-group"><label>Fuseau horaire (optionnel)</label><input type="text" id="col-clock-tz" placeholder="Europe/Paris"><div style="font-size:11px;color:var(--text-muted);margin-top:4px">Laisser vide = heure locale</div></div>';
+    html = '<div class="form-group"><label>' + t('form.timezone') + '</label><input type="text" id="col-clock-tz" placeholder="Europe/Paris"><div style="font-size:11px;color:var(--text-muted);margin-top:4px">' + t('form.timezoneHint') + '</div></div>';
   } else if (type === 'search') {
-    html = '<div class="form-group"><label>Moteur</label><select id="col-search-engine"><option value="google">Google</option><option value="duckduckgo">DuckDuckGo</option><option value="bing">Bing</option></select></div>';
+    html = '<div class="form-group"><label>' + t('form.searchEngine') + '</label><select id="col-search-engine"><option value="google">Google</option><option value="duckduckgo">DuckDuckGo</option><option value="bing">Bing</option></select></div>';
   } else if (type === 'embed') {
-    html = '<div class="form-group"><label>URL a integrer</label><input type="url" id="col-embed-url" placeholder="https://example.com"></div>';
+    html = '<div class="form-group"><label>' + t('form.embedUrl') + '</label><input type="url" id="col-embed-url" placeholder="https://example.com"></div>';
   } else if (type === 'ai') {
-    html = `<div class="form-group"><label>Provider</label><select id="col-ai-provider"><option value="mistral">Mistral</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select></div>
-    <div class="form-group"><label>Cle API</label><input type="password" id="col-ai-key" placeholder="Votre cle API"></div>
-    <div class="form-group"><label>Modele (optionnel)</label><input type="text" id="col-ai-model" placeholder="Laisser vide = modele par defaut"></div>`;
+    html = `<div class="form-group"><label>${t('form.provider')}</label><select id="col-ai-provider"><option value="mistral">Mistral</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option></select></div>
+    <div class="form-group"><label>${t('form.apiKey')}</label><input type="password" id="col-ai-key" placeholder="${t('form.apiKeyPlaceholder')}"></div>
+    <div class="form-group"><label>${t('form.model')}</label><input type="text" id="col-ai-model" placeholder="${t('form.modelHint')}"></div>`;
   }
   extra.innerHTML = html;
 }
@@ -1506,7 +1578,7 @@ function updateColTypeSelection(type) {
 async function renameColumn(colId) {
   const page = dashboard.find(p => p.id === activePageId);
   const col = page?.columns.find(c => c.id === colId);
-  const title = prompt('Nouveau nom :', col?.title);
+  const title = prompt(t('column.renamePrompt'), col?.title);
   if (!title) return;
   await api(`/columns/${colId}`, { method: 'PUT', body: { title } });
   col.title = title;
@@ -1514,67 +1586,67 @@ async function renameColumn(colId) {
 }
 
 async function deleteColumn(colId) {
-  if (!confirm('Supprimer cette colonne et tout son contenu ?')) return;
+  if (!confirm(t('column.deleteConfirm'))) return;
   await api(`/columns/${colId}`, { method: 'DELETE' });
   await loadDashboard();
 }
 
 // ─── Widgets ──────────────────────────────────────────
 function addWidget(colId) {
-  showModal('Ajouter un widget', `
+  showModal(t('widget.add.title'), `
     <div class="form-group">
-      <label>Type</label>
+      <label>${t('widget.add.type')}</label>
       <select id="widget-type">
-        <option value="bookmarks">Favoris</option>
-        <option value="rss">Flux RSS</option>
-        <option value="notes">Notes</option>
-        <option value="weather">Meteo</option>
-        <option value="clock">Horloge</option>
-        <option value="search">Recherche</option>
-        <option value="embed">Embed / iFrame</option>
+        <option value="bookmarks">${t('widget.type.bookmarks')}</option>
+        <option value="rss">${t('widget.add.rss')}</option>
+        <option value="notes">${t('widget.type.notes')}</option>
+        <option value="weather">${t('widget.type.weather')}</option>
+        <option value="clock">${t('widget.type.clock')}</option>
+        <option value="search">${t('widget.type.search')}</option>
+        <option value="embed">${t('widget.add.embed')}</option>
       </select>
     </div>
     <div class="form-group">
-      <label>Titre</label>
-      <input type="text" id="widget-title" placeholder="Mon widget" required>
+      <label>${t('widget.add.titleLabel')}</label>
+      <input type="text" id="widget-title" placeholder="${t('widget.add.titlePlaceholder')}" required>
     </div>
     <div class="form-group hidden" id="rss-url-group">
-      <label>URL du flux RSS</label>
+      <label>${t('form.rssUrl')}</label>
       <input type="url" id="widget-rss-url" placeholder="https://example.com/feed.xml">
     </div>
     <div class="form-group hidden" id="weather-city-group">
-      <label>Ville</label>
+      <label>${t('form.city')}</label>
       <input type="text" id="widget-weather-city" placeholder="Paris">
     </div>
     <div class="form-group hidden" id="clock-tz-group">
-      <label>Fuseau horaire (optionnel)</label>
+      <label>${t('form.timezone')}</label>
       <input type="text" id="widget-clock-tz" placeholder="Europe/Paris">
-      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Laisser vide = heure locale</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${t('form.timezoneHint')}</div>
     </div>
     <div class="form-group hidden" id="search-engine-group">
-      <label>Moteur de recherche</label>
+      <label>${t('form.searchEngine')}</label>
       <select id="widget-search-engine">
         <option value="google">Google</option>
         <option value="duckduckgo">DuckDuckGo</option>
         <option value="bing">Bing</option>
-        <option value="custom">Personnalise</option>
+        <option value="custom">${t('form.custom')}</option>
       </select>
     </div>
     <div class="form-group hidden" id="search-custom-group">
-      <label>URL personnalisee (utiliser %s pour la requete)</label>
+      <label>${t('form.customUrlLabel')}</label>
       <input type="url" id="widget-search-custom" placeholder="https://example.com/search?q=%s">
     </div>
     <div class="form-group hidden" id="embed-url-group">
-      <label>URL a integrer</label>
+      <label>${t('form.embedUrl')}</label>
       <input type="url" id="widget-embed-url" placeholder="https://example.com">
     </div>
     <div class="form-group hidden" id="embed-height-group">
-      <label>Hauteur (px)</label>
+      <label>${t('form.height')}</label>
       <input type="number" id="widget-embed-height" value="300" min="100" max="800">
     </div>
   `, async () => {
     const type = document.getElementById('widget-type').value;
-    const title = document.getElementById('widget-title').value || 'Sans titre';
+    const title = document.getElementById('widget-title').value || t('widget.untitled');
     const config = {};
     if (type === 'rss') { const u = document.getElementById('widget-rss-url').value; if (u) config.feeds = [{ url: u, title: '' }]; }
     if (type === 'weather') config.city = document.getElementById('widget-weather-city').value;
@@ -1615,14 +1687,14 @@ function addWidget(colId) {
 }
 
 async function renameWidget(widgetId) {
-  const title = prompt('Nouveau titre :');
+  const title = prompt(t('widget.renamePrompt'));
   if (!title) return;
   await api(`/widgets/${widgetId}`, { method: 'PUT', body: { title } });
   await loadDashboard();
 }
 
 async function deleteWidget(widgetId) {
-  if (!confirm('Supprimer ce widget ?')) return;
+  if (!confirm(t('widget.deleteConfirm'))) return;
   await api(`/widgets/${widgetId}`, { method: 'DELETE' });
   await loadDashboard();
 }
@@ -1662,35 +1734,35 @@ function openRSSSettings(widgetId) {
   const toggleHTML = (id, label, checked) =>
     '<div class="setting-toggle"><span>' + label + '</span><label class="toggle-switch"><input type="checkbox" id="' + id + '"' + (checked ? ' checked' : '') + '><span class="toggle-slider"></span></label></div>';
 
-  showModal('Parametres RSS', '<div class="rss-settings-tabs">' +
-    '<button class="rss-tab active" onclick="switchRSSTab(\'feeds\')">Flux RSS</button>' +
-    '<button class="rss-tab" onclick="switchRSSTab(\'display\')">Affichage</button>' +
+  showModal(t('rss.settings.title'), '<div class="rss-settings-tabs">' +
+    '<button class="rss-tab active" onclick="switchRSSTab(\'feeds\')">' + t('rss.settings.tabFeeds') + '</button>' +
+    '<button class="rss-tab" onclick="switchRSSTab(\'display\')">' + t('rss.settings.tabDisplay') + '</button>' +
     '</div>' +
     '<div class="rss-tab-content active" id="rss-tab-feeds">' +
       '<div class="rss-feed-list" id="rss-feed-list">' + feedListHTML + '</div>' +
-      '<button class="rss-add-feed" onclick="addRSSFeedRow()">+ Ajouter un nouveau flux RSS</button>' +
+      '<button class="rss-add-feed" onclick="addRSSFeedRow()">' + t('rss.settings.addFeed') + '</button>' +
     '</div>' +
     '<div class="rss-tab-content" id="rss-tab-display">' +
-      '<div class="setting-section"><div class="setting-label">Nombre d\'articles a afficher</div>' +
+      '<div class="setting-section"><div class="setting-label">' + t('rss.settings.articleCount') + '</div>' +
         '<select id="rss-set-count">' +
-        [5,10,15,20,30].map(n => '<option value="'+n+'"'+(ds.articleCount===n?' selected':'')+'>'+n+' articles</option>').join('') +
+        [5,10,15,20,30].map(n => '<option value="'+n+'"'+(ds.articleCount===n?' selected':'')+'>'+n+' '+t('rss.settings.articles')+'</option>').join('') +
         '</select></div>' +
-      '<div class="setting-section"><div class="setting-label">Afficher les sommaires de</div>' +
+      '<div class="setting-section"><div class="setting-label">' + t('rss.settings.showSummaries') + '</div>' +
         '<select id="rss-set-summaries">' +
-        '<option value="first"'+(ds.summaries==='first'?' selected':'')+'>Seulement le premier article</option>' +
-        '<option value="all"'+(ds.summaries==='all'?' selected':'')+'>Tous les articles</option>' +
-        '<option value="none"'+(ds.summaries==='none'?' selected':'')+'>Aucun</option>' +
+        '<option value="first"'+(ds.summaries==='first'?' selected':'')+'>' + t('rss.settings.summaryFirst') + '</option>' +
+        '<option value="all"'+(ds.summaries==='all'?' selected':'')+'>' + t('rss.settings.summaryAll') + '</option>' +
+        '<option value="none"'+(ds.summaries==='none'?' selected':'')+'>' + t('rss.settings.summaryNone') + '</option>' +
         '</select></div>' +
-      '<div class="setting-section"><div class="setting-label">Afficher les images</div>' +
+      '<div class="setting-section"><div class="setting-label">' + t('rss.settings.showImages') + '</div>' +
         '<select id="rss-set-images">' +
-        '<option value="large"'+(ds.images==='large'?' selected':'')+'>Grandes images</option>' +
-        '<option value="small"'+(ds.images==='small'?' selected':'')+'>Petites images</option>' +
-        '<option value="none"'+(ds.images==='none'?' selected':'')+'>Aucune</option>' +
+        '<option value="large"'+(ds.images==='large'?' selected':'')+'>' + t('rss.settings.imagesLarge') + '</option>' +
+        '<option value="small"'+(ds.images==='small'?' selected':'')+'>' + t('rss.settings.imagesSmall') + '</option>' +
+        '<option value="none"'+(ds.images==='none'?' selected':'')+'>' + t('rss.settings.imagesNone') + '</option>' +
         '</select></div>' +
-      toggleHTML('rss-set-truncate', 'Tronquer les titres', ds.truncateTitles) +
-      toggleHTML('rss-set-timestamps', 'Afficher les horodatages', ds.showTimestamps) +
-      toggleHTML('rss-set-pagination', 'Afficher les boutons de pagination', ds.showPagination) +
-      '<button class="setting-apply-all" onclick="applyRSSSettingsToAll()">Appliquer a tous les widgets de cette page</button>' +
+      toggleHTML('rss-set-truncate', t('rss.settings.truncateTitles'), ds.truncateTitles) +
+      toggleHTML('rss-set-timestamps', t('rss.settings.showTimestamps'), ds.showTimestamps) +
+      toggleHTML('rss-set-pagination', t('rss.settings.showPagination'), ds.showPagination) +
+      '<button class="setting-apply-all" onclick="applyRSSSettingsToAll()">' + t('rss.settings.applyAll') + '</button>' +
     '</div>'
   , saveRSSSettings);
   initRSSFeedSortable();
@@ -1703,7 +1775,7 @@ function rssSettingsFeedItem(f, idx) {
     '<span class="rss-feed-handle">&#x2630;</span>' +
     (fav ? '<img class="rss-feed-icon" src="'+esc(fav)+'" onerror="this.style.display=\'none\'">' : '') +
     '<div class="rss-feed-info"><div class="rss-feed-title">'+esc(title)+'</div><div class="rss-feed-url">'+esc(f.url)+'</div></div>' +
-    '<button class="rss-feed-del" onclick="removeRSSFeedRow(this)" title="Supprimer">&times;</button>' +
+    '<button class="rss-feed-del" onclick="removeRSSFeedRow(this)" title="' + t('rss.settings.deleteFeed') + '">&times;</button>' +
     '</div>';
 }
 
@@ -1720,7 +1792,7 @@ function switchRSSTab(tab) {
 }
 
 function addRSSFeedRow() {
-  const url = prompt('URL du flux RSS :');
+  const url = prompt(t('rss.settings.feedUrlPrompt'));
   if (!url) return;
   const title = domainFromUrl(url);
   const list = document.getElementById('rss-feed-list');
@@ -1780,14 +1852,14 @@ async function applyRSSSettingsToAll() {
       }
     }
   }
-  toast('Parametres appliques a tous les widgets RSS');
+  toast(t('rss.settings.appliedAll'));
   closeModal();
   await loadDashboard();
 }
 
 async function editWeatherCity(widgetId) {
   const w = findWidget(widgetId);
-  const city = prompt('Ville :', w?.config?.city || '');
+  const city = prompt(t('edit.cityPrompt'), w?.config?.city || '');
   if (city === null) return;
   await api(`/widgets/${widgetId}`, { method: 'PUT', body: { config: { ...w.config, city } } });
   await loadDashboard();
@@ -1795,18 +1867,18 @@ async function editWeatherCity(widgetId) {
 
 async function editSearchEngine(widgetId) {
   const w = findWidget(widgetId);
-  showModal('Modifier la recherche', `
+  showModal(t('edit.search.title'), `
     <div class="form-group">
-      <label>Moteur de recherche</label>
+      <label>${t('form.searchEngine')}</label>
       <select id="edit-search-engine">
         <option value="google" ${w?.config?.engine === 'google' ? 'selected' : ''}>Google</option>
         <option value="duckduckgo" ${w?.config?.engine === 'duckduckgo' ? 'selected' : ''}>DuckDuckGo</option>
         <option value="bing" ${w?.config?.engine === 'bing' ? 'selected' : ''}>Bing</option>
-        <option value="custom" ${w?.config?.engine === 'custom' ? 'selected' : ''}>Personnalise</option>
+        <option value="custom" ${w?.config?.engine === 'custom' ? 'selected' : ''}>${t('form.custom')}</option>
       </select>
     </div>
     <div class="form-group" id="edit-custom-url-group" ${w?.config?.engine !== 'custom' ? 'style="display:none"' : ''}>
-      <label>URL personnalisee (%s = requete)</label>
+      <label>${t('form.customUrlLabelShort')}</label>
       <input type="url" id="edit-search-custom" value="${esc(w?.config?.customUrl || '')}">
     </div>
   `, async () => {
@@ -1823,13 +1895,13 @@ async function editSearchEngine(widgetId) {
 
 async function editEmbedUrl(widgetId) {
   const w = findWidget(widgetId);
-  showModal('Modifier l\'embed', `
+  showModal(t('edit.embed.title'), `
     <div class="form-group">
-      <label>URL</label>
+      <label>${t('bookmark.label.url')}</label>
       <input type="url" id="edit-embed-url" value="${esc(w?.config?.url || '')}">
     </div>
     <div class="form-group">
-      <label>Hauteur (px)</label>
+      <label>${t('form.height')}</label>
       <input type="number" id="edit-embed-height" value="${w?.config?.height || 300}" min="100" max="800">
     </div>
   `, async () => {
@@ -1843,17 +1915,17 @@ async function editEmbedUrl(widgetId) {
 
 async function editClockConfig(widgetId) {
   const w = findWidget(widgetId);
-  showModal('Modifier l\'horloge', `
+  showModal(t('edit.clock.title'), `
     <div class="form-group">
-      <label>Fuseau horaire</label>
+      <label>${t('edit.clock.timezone')}</label>
       <input type="text" id="edit-clock-tz" value="${esc(w?.config?.timezone || '')}" placeholder="Europe/Paris">
-      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Laisser vide = heure locale</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${t('form.timezoneHint')}</div>
     </div>
     <div class="form-group">
-      <label>Format</label>
+      <label>${t('edit.clock.format')}</label>
       <select id="edit-clock-format">
-        <option value="true" ${w?.config?.format24h !== false ? 'selected' : ''}>24 heures</option>
-        <option value="false" ${w?.config?.format24h === false ? 'selected' : ''}>12 heures (AM/PM)</option>
+        <option value="true" ${w?.config?.format24h !== false ? 'selected' : ''}>${t('edit.clock.24h')}</option>
+        <option value="false" ${w?.config?.format24h === false ? 'selected' : ''}>${t('edit.clock.12h')}</option>
       </select>
     </div>
   `, async () => {
@@ -1882,13 +1954,13 @@ function findWidget(widgetId) {
 
 // ─── Bookmarks ────────────────────────────────────────
 function addBookmark(widgetId) {
-  showModal('Ajouter un favori', `
+  showModal(t('bookmark.add.title'), `
     <div class="form-group">
-      <label>Titre</label>
+      <label>${t('bookmark.label.title')}</label>
       <input type="text" id="bm-title" placeholder="Google" required>
     </div>
     <div class="form-group">
-      <label>URL</label>
+      <label>${t('bookmark.label.url')}</label>
       <input type="url" id="bm-url" placeholder="https://google.com" required>
     </div>
     ${iconPickerHTML('')}
@@ -1896,7 +1968,7 @@ function addBookmark(widgetId) {
     const title = document.getElementById('bm-title').value;
     const url = document.getElementById('bm-url').value;
     const icon = document.getElementById('bm-icon-value').value;
-    if (!title || !url) return toast('Champs requis', 'error');
+    if (!title || !url) return toast(t('bookmark.fieldsRequired'), 'error');
     await api(`/widgets/${widgetId}/bookmarks`, { method: 'POST', body: { title, url, icon } });
     closeModal();
     await loadDashboard();
@@ -1909,18 +1981,18 @@ function editBookmark(widgetId, bmId) {
   const bm = (w?.bookmarks || []).find(b => b.id === bmId);
   if (!bm) return;
 
-  showModal('Modifier le favori', `
+  showModal(t('bookmark.edit.title'), `
     <div class="form-group">
-      <label>Titre</label>
+      <label>${t('bookmark.label.title')}</label>
       <input type="text" id="bm-title" value="${esc(bm.title)}">
     </div>
     <div class="form-group">
-      <label>URL</label>
+      <label>${t('bookmark.label.url')}</label>
       <input type="url" id="bm-url" value="${esc(bm.url)}">
     </div>
     ${iconPickerHTML(bm.icon || '')}
     <div style="margin-top:12px">
-      <button class="btn btn-danger btn-sm" onclick="deleteBookmark(${bmId})">Supprimer ce favori</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteBookmark(${bmId})">${t('bookmark.delete')}</button>
     </div>
   `, async () => {
     const title = document.getElementById('bm-title').value;
@@ -1954,8 +2026,8 @@ function loadRSSFeeds(page) {
 
 function rssItemHTML(item, idx, ds) {
   const date = item.pubDate ? new Date(item.pubDate) : null;
-  const dateStr = date ? date.toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
-  const fullDateStr = date ? date.toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+  const dateStr = date ? date.toLocaleString(getLocale(), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  const fullDateStr = date ? date.toLocaleString(getLocale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
   const imgHtml = item.image ? '<img class="rss-item-img" src="' + esc(item.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '';
   const snippet = item.contentSnippet || '';
   const showSnippet = ds.summaries === 'all' || (ds.summaries === 'first' && idx === 0);
@@ -2006,7 +2078,7 @@ function renderRSSPage(widgetId, container, allItems) {
   container.className = 'rss-items ' + rssContainerClasses(ds);
 
   let html = items.map((it, i) => rssItemHTML(it, needsPaging ? page * perPage + i : i, ds)).join('');
-  if (!html) html = '<div style="padding:12px;color:var(--text-muted);font-size:13px;">Aucun article</div>';
+  if (!html) html = '<div style="padding:12px;color:var(--text-muted);font-size:13px;">' + t('rss.noArticles') + '</div>';
   if (needsPaging) {
     html += '<div class="widget-pagination">' +
       '<button onclick="widgetPageNav(' + widgetId + ',-1)"' + (page === 0 ? ' disabled' : '') + '>&#9664;</button>' +
@@ -2033,7 +2105,7 @@ async function loadMultiRSS(widgetId, feeds) {
     container._allItems = allItems;
     renderRSSPage(widgetId, container, allItems);
   } catch (err) {
-    container.innerHTML = '<div style="padding:12px;color:var(--danger);font-size:13px;">Erreur: ' + esc(err.message) + '</div>';
+    container.innerHTML = '<div style="padding:12px;color:var(--danger);font-size:13px;">' + t('rss.error', {message: esc(err.message)}) + '</div>';
   }
 }
 
@@ -2052,12 +2124,12 @@ async function loadSingleWeather(widgetId, city) {
   const container = document.getElementById(`weather-${widgetId}`);
   if (!container) return;
   try {
-    const data = await api(`/weather?city=${encodeURIComponent(city)}`);
+    const data = await api(`/weather?city=${encodeURIComponent(city)}&lang=${_currentLang}`);
     const grad = weatherGradient(data.weatherCode);
     const svgIcon = weatherSVG(data.weatherCode, 64);
 
     const uvVal = parseInt(data.uvIndex) || 0;
-    const uvLabel = uvVal <= 2 ? 'Faible' : uvVal <= 5 ? 'Moyen' : uvVal <= 7 ? 'Eleve' : 'Tres eleve';
+    const uvLabel = uvVal <= 2 ? t('weather.uv.low') : uvVal <= 5 ? t('weather.uv.moderate') : uvVal <= 7 ? t('weather.uv.high') : t('weather.uv.veryHigh');
 
     let sunHtml = '';
     if (data.sunrise || data.sunset) {
@@ -2075,7 +2147,7 @@ async function loadSingleWeather(widgetId, city) {
       if (futureHours.length > 0) {
         hourlyHtml = '<div class="weather-hourly">' + futureHours.map(function(h) {
           const hr = Math.floor(parseInt(h.time) / 100);
-          const label = (h.dayOffset > 0 ? 'Dem. ' : '') + (hr < 10 ? '0' : '') + hr + ':00';
+          const label = (h.dayOffset > 0 ? t('weather.tomorrow') : '') + (hr < 10 ? '0' : '') + hr + ':00';
           return '<div class="weather-hourly-item">' +
             '<div class="wh-time">' + label + '</div>' +
             '<div class="wh-icon">' + weatherSVG(h.weatherCode, 24) + '</div>' +
@@ -2090,7 +2162,7 @@ async function loadSingleWeather(widgetId, city) {
     if (data.forecast && data.forecast.length > 0) {
       forecastHtml = '<div class="weather-forecast-5d">' + data.forecast.map(function(d) {
         const date = new Date(d.date);
-        const dayName = date.toLocaleDateString('fr-FR', { weekday: 'short' });
+        const dayName = date.toLocaleDateString(getLocale(), { weekday: 'short' });
         return '<div class="weather-forecast-day">' +
           '<div class="wf-date">' + dayName + '</div>' +
           '<div class="wf-icon">' + weatherSVG(d.weatherCode, 28) + '</div>' +
@@ -2110,20 +2182,20 @@ async function loadSingleWeather(widgetId, city) {
           '</div>' +
         '</div>' +
         '<div class="weather-info-grid">' +
-          '<div class="weather-info-item"><span class="wi-label">Ressenti</span><span class="wi-value">' + data.feels_like_C + '°C</span></div>' +
-          '<div class="weather-info-item"><span class="wi-label">Humidite</span><span class="wi-value">' + data.humidity + '%</span></div>' +
-          '<div class="weather-info-item"><span class="wi-label">Vent</span><span class="wi-value">' + windArrow(data.windDirection) + data.wind_kmph + ' km/h</span></div>' +
-          '<div class="weather-info-item"><span class="wi-label">UV</span><span class="wi-value">' + data.uvIndex + ' <span style="font-weight:400;font-size:10px;color:var(--text-muted)">' + uvLabel + '</span></span></div>' +
-          '<div class="weather-info-item"><span class="wi-label">Pluie</span><span class="wi-value">' + data.precipMM + ' mm</span></div>' +
-          '<div class="weather-info-item"><span class="wi-label">Pression</span><span class="wi-value">' + data.pressure + ' hPa</span></div>' +
+          '<div class="weather-info-item"><span class="wi-label">' + t('weather.feelsLike') + '</span><span class="wi-value">' + data.feels_like_C + '°C</span></div>' +
+          '<div class="weather-info-item"><span class="wi-label">' + t('weather.humidity') + '</span><span class="wi-value">' + data.humidity + '%</span></div>' +
+          '<div class="weather-info-item"><span class="wi-label">' + t('weather.wind') + '</span><span class="wi-value">' + windArrow(data.windDirection) + data.wind_kmph + ' km/h</span></div>' +
+          '<div class="weather-info-item"><span class="wi-label">' + t('weather.uv') + '</span><span class="wi-value">' + data.uvIndex + ' <span style="font-weight:400;font-size:10px;color:var(--text-muted)">' + uvLabel + '</span></span></div>' +
+          '<div class="weather-info-item"><span class="wi-label">' + t('weather.rain') + '</span><span class="wi-value">' + data.precipMM + ' mm</span></div>' +
+          '<div class="weather-info-item"><span class="wi-label">' + t('weather.pressure') + '</span><span class="wi-value">' + data.pressure + ' hPa</span></div>' +
         '</div>' +
         sunHtml +
         hourlyHtml +
         forecastHtml +
-        '<div class="weather-link"><a href="https://meteofrance.com/recherche/all?query=' + encodeURIComponent(city) + '" target="_blank" rel="noopener">Prévisions sur Météo France ↗</a></div>' +
+        '<div class="weather-link"><a href="https://meteofrance.com/recherche/all?query=' + encodeURIComponent(city) + '" target="_blank" rel="noopener">' + t('weather.forecastLink') + '</a></div>' +
       '</div>';
   } catch (err) {
-    container.innerHTML = '<div class="weather-error">Erreur: ' + esc(err.message) + '</div>';
+    container.innerHTML = '<div class="weather-error">' + t('weather.error', {message: esc(err.message)}) + '</div>';
   }
 }
 
@@ -2215,11 +2287,11 @@ function startClocks() {
       const dateOpts = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
       if (tz) dateOpts.timeZone = tz;
       try {
-        el.querySelector('.clock-time').textContent = new Date().toLocaleTimeString('fr-FR', opts);
-        el.querySelector('.clock-date').textContent = new Date().toLocaleDateString('fr-FR', dateOpts);
+        el.querySelector('.clock-time').textContent = new Date().toLocaleTimeString(getLocale(), opts);
+        el.querySelector('.clock-date').textContent = new Date().toLocaleDateString(getLocale(), dateOpts);
       } catch {
-        el.querySelector('.clock-time').textContent = new Date().toLocaleTimeString('fr-FR');
-        el.querySelector('.clock-date').textContent = new Date().toLocaleDateString('fr-FR');
+        el.querySelector('.clock-time').textContent = new Date().toLocaleTimeString(getLocale());
+        el.querySelector('.clock-date').textContent = new Date().toLocaleDateString(getLocale());
       }
     }
     update();
@@ -2256,12 +2328,12 @@ function showUserMenu(event) {
   dropdown.style.top = (rect.bottom + 4) + 'px';
   dropdown.style.right = (window.innerWidth - rect.right) + 'px';
   dropdown.innerHTML = `
-    <div class="dropdown-item" onclick="openSettings()"><span style="font-size:15px;width:20px;text-align:center">🎨</span> Personnalisation</div>
-    <div class="dropdown-item" onclick="openImportExport()"><span style="font-size:15px;width:20px;text-align:center">📦</span> Import / Export</div>
-    <div class="dropdown-item" onclick="installExtension()"><span style="font-size:15px;width:20px;text-align:center">🧩</span> Extension navigateur</div>
+    <div class="dropdown-item" onclick="openSettings()"><span style="font-size:15px;width:20px;text-align:center">🎨</span> ${t('menu.settings')}</div>
+    <div class="dropdown-item" onclick="openImportExport()"><span style="font-size:15px;width:20px;text-align:center">📦</span> ${t('menu.importExport')}</div>
+    <div class="dropdown-item" onclick="installExtension()"><span style="font-size:15px;width:20px;text-align:center">🧩</span> ${t('menu.extension')}</div>
     <div class="dropdown-sep"></div>
-    <div class="dropdown-item" onclick="changePassword()"><span style="font-size:15px;width:20px;text-align:center">🔒</span> Changer le mot de passe</div>
-    <div class="dropdown-item danger" onclick="logout()"><span style="font-size:15px;width:20px;text-align:center">🚪</span> Deconnexion</div>
+    <div class="dropdown-item" onclick="changePassword()"><span style="font-size:15px;width:20px;text-align:center">🔒</span> ${t('menu.changePassword')}</div>
+    <div class="dropdown-item danger" onclick="logout()"><span style="font-size:15px;width:20px;text-align:center">🚪</span> ${t('menu.logout')}</div>
   `;
   document.body.appendChild(dropdown);
   setTimeout(() => document.addEventListener('click', closeDropdowns, { once: true }), 10);
@@ -2273,13 +2345,13 @@ function closeDropdowns() {
 
 function changePassword() {
   closeDropdowns();
-  showModal('Changer le mot de passe', `
+  showModal(t('password.title'), `
     <div class="form-group">
-      <label>Mot de passe actuel</label>
+      <label>${t('password.current')}</label>
       <input type="password" id="cur-pass">
     </div>
     <div class="form-group">
-      <label>Nouveau mot de passe</label>
+      <label>${t('password.new')}</label>
       <input type="password" id="new-pass">
     </div>
   `, async () => {
@@ -2287,7 +2359,7 @@ function changePassword() {
     const newPassword = document.getElementById('new-pass').value;
     await api('/auth/password', { method: 'PUT', body: { currentPassword, newPassword } });
     closeModal();
-    toast('Mot de passe mis a jour', 'success');
+    toast(t('password.updated'), 'success');
   });
 }
 
@@ -2303,23 +2375,23 @@ function installExtension() {
     return;
   }
 
-  const browserName = isEdge ? 'Edge' : isChrome ? 'Chrome / Brave' : 'votre navigateur';
+  const browserName = isEdge ? 'Edge' : isChrome ? 'Chrome / Brave' : t('ext.browser.default');
   setTimeout(() => {
-    showModal('Extension ' + browserName, `
+    showModal(t('ext.title', {browser: browserName}), `
       <div style="text-align:center;padding:8px 0">
         <div style="font-size:40px;margin-bottom:12px">🧩</div>
-        <p style="margin-bottom:16px;color:var(--text)">Ajoutez des sites a votre dashboard en un clic depuis ${esc(browserName)}.</p>
+        <p style="margin-bottom:16px;color:var(--text)">${t('ext.description', {browser: esc(browserName)})}</p>
         <a href="/launchy-extension-chromium.zip" class="btn btn-primary" style="margin-top:8px;display:inline-block;text-decoration:none;font-size:14px;padding:10px 24px">
-          Telecharger l'extension
+          ${t('ext.download')}
         </a>
         <div style="margin-top:20px;text-align:left;padding:12px;background:var(--bg-input);border-radius:8px">
           <div style="font-size:12px;color:var(--text-muted);line-height:1.8">
-            <strong style="color:var(--text)">Installation :</strong><br>
-            1. Dezippez le fichier telecharge<br>
-            2. Ouvrez <strong style="color:var(--text)">${isEdge ? 'edge' : 'chrome'}://extensions</strong><br>
-            3. Activez le <strong style="color:var(--text)">Mode developpeur</strong> (en haut a droite)<br>
-            4. Cliquez <strong style="color:var(--text)">Charger l'extension non empaquetee</strong><br>
-            5. Selectionnez le dossier dezippe
+            <strong style="color:var(--text)">${t('ext.installTitle')}</strong><br>
+            1. ${t('ext.step1')}<br>
+            2. ${t('ext.step2', {url: (isEdge ? 'edge' : 'chrome') + '://extensions'})}<br>
+            3. ${t('ext.step3')}<br>
+            4. ${t('ext.step4')}<br>
+            5. ${t('ext.step5')}
           </div>
         </div>
       </div>
@@ -2330,31 +2402,40 @@ function installExtension() {
 // ─── Settings ─────────────────────────────────────────
 function openSettings() {
   closeDropdowns();
-  showModal('Personnalisation', `
+  showModal(t('settings.title'), `
     <div class="modal-section">
-      <h3>Fond d'ecran</h3>
+      <h3>${t('settings.wallpaper')}</h3>
       <div class="form-group">
-        <label>URL de l'image</label>
+        <label>${t('settings.wallpaperUrl')}</label>
         <input type="url" id="settings-bg-url" value="${esc(currentUser.background_url || '')}" placeholder="https://example.com/image.jpg">
       </div>
       <div class="form-group">
-        <label>Opacite du fond (${Math.round((currentUser.background_overlay || 0.85) * 100)}%)</label>
+        <label>${t('settings.wallpaperOpacity', {value: Math.round((currentUser.background_overlay || 0.85) * 100)})}</label>
         <input type="range" id="settings-bg-opacity" min="0" max="100" value="${Math.round((currentUser.background_overlay || 0.85) * 100)}">
       </div>
     </div>
     <div class="modal-section">
-      <h3>Couleur d'accent</h3>
+      <h3>${t('settings.accentColor')}</h3>
       <div class="form-group" style="display:flex;gap:12px;align-items:center">
         <input type="color" id="settings-accent" value="${currentUser.accent_color || '#4a9eff'}" style="width:60px">
-        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('settings-accent').value='#4a9eff'">Reinitialiser</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('settings-accent').value='#4a9eff'">${t('settings.reset')}</button>
       </div>
     </div>
     <div class="modal-section">
-      <h3>Ouverture des liens</h3>
+      <h3>${t('settings.linkTarget')}</h3>
       <div class="form-group">
         <select id="settings-link-target">
-          <option value="_blank" ${(currentUser.link_target || '_blank') === '_blank' ? 'selected' : ''}>Nouvel onglet</option>
-          <option value="_self" ${currentUser.link_target === '_self' ? 'selected' : ''}>Meme page</option>
+          <option value="_blank" ${(currentUser.link_target || '_blank') === '_blank' ? 'selected' : ''}>${t('settings.newTab')}</option>
+          <option value="_self" ${currentUser.link_target === '_self' ? 'selected' : ''}>${t('settings.samePage')}</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-section">
+      <h3>${t('settings.language')}</h3>
+      <div class="form-group">
+        <select id="settings-language">
+          <option value="en" ${_currentLang === 'en' ? 'selected' : ''}>English</option>
+          <option value="fr" ${_currentLang === 'fr' ? 'selected' : ''}>Français</option>
         </select>
       </div>
     </div>
@@ -2366,44 +2447,46 @@ function openSettings() {
     const defaultAccent = accent_color === '#4a9eff' ? '' : accent_color;
     currentUser = await api('/auth/customization', { method: 'PUT', body: { background_url, background_overlay, accent_color: defaultAccent, link_target } });
     applyCustomization(currentUser);
+    const newLang = document.getElementById('settings-language').value;
+    if (newLang !== _currentLang) await setLanguage(newLang);
     closeModal();
-    toast('Personnalisation sauvegardee', 'success');
+    toast(t('settings.saved'), 'success');
   });
 
   document.getElementById('settings-bg-opacity').addEventListener('input', (e) => {
-    e.target.previousElementSibling.textContent = `Opacite du fond (${e.target.value}%)`;
+    e.target.previousElementSibling.textContent = t('settings.wallpaperOpacity', {value: e.target.value});
   });
 }
 
 // ─── Import / Export ──────────────────────────────────
 function openImportExport() {
   closeDropdowns();
-  showModal('Import / Export', `
+  showModal(t('importExport.title'), `
     <div class="modal-section">
-      <h3>Exporter</h3>
+      <h3>${t('importExport.export')}</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-outline btn-sm" onclick="exportBookmarks()">Exporter les favoris (HTML)</button>
-        <button class="btn btn-outline btn-sm" onclick="exportOPML()">Exporter les flux RSS (OPML)</button>
+        <button class="btn btn-outline btn-sm" onclick="exportBookmarks()">${t('importExport.exportBookmarks')}</button>
+        <button class="btn btn-outline btn-sm" onclick="exportOPML()">${t('importExport.exportRSS')}</button>
       </div>
     </div>
     <div class="modal-section">
-      <h3>Importer</h3>
+      <h3>${t('importExport.import')}</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-outline btn-sm" onclick="importBookmarks()">Importer des favoris (HTML)</button>
-        <button class="btn btn-outline btn-sm" onclick="importOPML()">Importer des flux RSS (OPML)</button>
+        <button class="btn btn-outline btn-sm" onclick="importBookmarks()">${t('importExport.importBookmarks')}</button>
+        <button class="btn btn-outline btn-sm" onclick="importOPML()">${t('importExport.importRSS')}</button>
       </div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:8px">
-        Les favoris importes seront places dans une nouvelle page "Import".
+        ${t('importExport.importNote')}
       </div>
     </div>
     <div class="modal-section">
-      <h3>Extensions navigateur</h3>
+      <h3>${t('importExport.extensions')}</h3>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
-        Ajoutez des sites a votre dashboard en un clic.
+        ${t('importExport.extensionDesc')}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:6px" onclick="installExtension()">
-          <span style="font-size:16px">🧩</span> Installer l'extension
+          <span style="font-size:16px">🧩</span> ${t('importExport.installExtension')}
         </button>
       </div>
     </div>
@@ -2443,7 +2526,7 @@ function importBookmarks() {
     const content = await file.text();
     try {
       const result = await api('/import/bookmarks', { method: 'POST', body: { content } });
-      toast(`${result.imported} favoris importes`, 'success');
+      toast(t('importExport.bookmarksImported', {count: result.imported}), 'success');
       closeModal();
       await loadDashboard();
     } catch (err) { toast(err.message, 'error'); }
@@ -2461,7 +2544,7 @@ function importOPML() {
     const content = await file.text();
     try {
       const result = await api('/import/opml', { method: 'POST', body: { content } });
-      toast(`${result.imported} flux importes`, 'success');
+      toast(t('importExport.feedsImported', {count: result.imported}), 'success');
       closeModal();
       await loadDashboard();
     } catch (err) { toast(err.message, 'error'); }
@@ -2523,28 +2606,28 @@ function siUrl(slug) {
 }
 
 const ICON_CATEGORIES = [
-  {key:'all',label:'Tout'},
-  {key:'social',label:'Social'},
-  {key:'msg',label:'Messagerie'},
-  {key:'stream',label:'Streaming'},
-  {key:'shop',label:'Shopping'},
-  {key:'dev',label:'Dev'},
-  {key:'db',label:'BDD'},
-  {key:'devops',label:'DevOps'},
-  {key:'cloud',label:'Cloud'},
-  {key:'prod',label:'Productivite'},
-  {key:'design',label:'Design'},
-  {key:'storage',label:'Stockage'},
-  {key:'browser',label:'Navigateurs'},
-  {key:'os',label:'OS'},
-  {key:'selfhost',label:'Self-hosted'},
-  {key:'media',label:'Media *arr'},
-  {key:'security',label:'Securite'},
-  {key:'email',label:'Email'},
-  {key:'cms',label:'CMS'},
-  {key:'ai',label:'IA'},
-  {key:'gaming',label:'Gaming'},
-  {key:'misc',label:'Divers'},
+  {key:'all',labelKey:'icon.cat.all'},
+  {key:'social',labelKey:'icon.cat.social'},
+  {key:'msg',labelKey:'icon.cat.msg'},
+  {key:'stream',labelKey:'icon.cat.stream'},
+  {key:'shop',labelKey:'icon.cat.shop'},
+  {key:'dev',labelKey:'icon.cat.dev'},
+  {key:'db',labelKey:'icon.cat.db'},
+  {key:'devops',labelKey:'icon.cat.devops'},
+  {key:'cloud',labelKey:'icon.cat.cloud'},
+  {key:'prod',labelKey:'icon.cat.prod'},
+  {key:'design',labelKey:'icon.cat.design'},
+  {key:'storage',labelKey:'icon.cat.storage'},
+  {key:'browser',labelKey:'icon.cat.browser'},
+  {key:'os',labelKey:'icon.cat.os'},
+  {key:'selfhost',labelKey:'icon.cat.selfhost'},
+  {key:'media',labelKey:'icon.cat.media'},
+  {key:'security',labelKey:'icon.cat.security'},
+  {key:'email',labelKey:'icon.cat.email'},
+  {key:'cms',labelKey:'icon.cat.cms'},
+  {key:'ai',labelKey:'icon.cat.ai'},
+  {key:'gaming',labelKey:'icon.cat.gaming'},
+  {key:'misc',labelKey:'icon.cat.misc'},
 ];
 
 const ICON_CAT_MAP = {};
@@ -2573,23 +2656,23 @@ const ICON_CAT_MAP = {};
 })();
 
 const EMOJI_ICONS = [
-  {e:'🏠',n:'Maison'},{e:'⭐',n:'Etoile'},{e:'❤️',n:'Coeur'},{e:'🔥',n:'Feu'},{e:'⚡',n:'Eclair'},
-  {e:'🎯',n:'Cible'},{e:'🚀',n:'Fusee'},{e:'💡',n:'Idee'},{e:'🔧',n:'Cle'},{e:'⚙️',n:'Engrenage'},
-  {e:'📁',n:'Dossier'},{e:'📂',n:'Dossier ouvert'},{e:'📊',n:'Graphique'},{e:'📈',n:'Hausse'},{e:'📉',n:'Baisse'},
-  {e:'📧',n:'Email'},{e:'📱',n:'Mobile'},{e:'💻',n:'Laptop'},{e:'🖥️',n:'Ecran'},{e:'🖨️',n:'Imprimante'},
-  {e:'🔒',n:'Cadenas'},{e:'🔑',n:'Cle'},{e:'🛡️',n:'Bouclier'},{e:'🔍',n:'Loupe'},{e:'📡',n:'Antenne'},
-  {e:'🌐',n:'Globe'},{e:'🌍',n:'Terre'},{e:'☁️',n:'Cloud'},{e:'📦',n:'Colis'},{e:'🗃️',n:'Fichier'},
-  {e:'🎵',n:'Musique'},{e:'🎬',n:'Cinema'},{e:'📸',n:'Photo'},{e:'🎮',n:'Jeux'},{e:'🎨',n:'Art'},
-  {e:'📚',n:'Livres'},{e:'✏️',n:'Crayon'},{e:'📝',n:'Notes'},{e:'📌',n:'Epingle'},{e:'📎',n:'Trombone'},
-  {e:'🗂️',n:'Classeur'},{e:'🗓️',n:'Calendrier'},{e:'⏰',n:'Alarme'},{e:'🔔',n:'Cloche'},{e:'💬',n:'Chat'},
-  {e:'👤',n:'Utilisateur'},{e:'👥',n:'Groupe'},{e:'🏢',n:'Bureau'},{e:'🏪',n:'Magasin'},{e:'🏭',n:'Usine'},
-  {e:'🚗',n:'Voiture'},{e:'✈️',n:'Avion'},{e:'🚂',n:'Train'},{e:'🛒',n:'Panier'},{e:'💰',n:'Argent'},
-  {e:'💳',n:'Carte'},{e:'🏦',n:'Banque'},{e:'📞',n:'Telephone'},{e:'🔗',n:'Lien'},{e:'⬇️',n:'Download'},
-  {e:'⬆️',n:'Upload'},{e:'♻️',n:'Recyclage'},{e:'✅',n:'Check'},{e:'❌',n:'Croix'},{e:'⚠️',n:'Attention'},
-  {e:'💾',n:'Disquette'},{e:'🗄️',n:'Serveur'},{e:'🔌',n:'Prise'},{e:'🧪',n:'Labo'},{e:'🤖',n:'Robot'},
-  {e:'🧠',n:'Cerveau'},{e:'📺',n:'TV'},{e:'🔊',n:'Son'},{e:'🎙️',n:'Micro'},{e:'📻',n:'Radio'},
-  {e:'🍕',n:'Pizza'},{e:'☕',n:'Cafe'},{e:'🍿',n:'Popcorn'},{e:'🎁',n:'Cadeau'},{e:'🏆',n:'Trophee'},
-  {e:'🛠️',n:'Outils'},{e:'🧩',n:'Puzzle'},{e:'🗺️',n:'Carte geo'},{e:'🏠',n:'Home'},
+  {e:'🏠',nKey:'emoji.house'},{e:'⭐',nKey:'emoji.star'},{e:'❤️',nKey:'emoji.heart'},{e:'🔥',nKey:'emoji.fire'},{e:'⚡',nKey:'emoji.lightning'},
+  {e:'🎯',nKey:'emoji.target'},{e:'🚀',nKey:'emoji.rocket'},{e:'💡',nKey:'emoji.idea'},{e:'🔧',nKey:'emoji.wrench'},{e:'⚙️',nKey:'emoji.gear'},
+  {e:'📁',nKey:'emoji.folder'},{e:'📂',nKey:'emoji.folderOpen'},{e:'📊',nKey:'emoji.chart'},{e:'📈',nKey:'emoji.up'},{e:'📉',nKey:'emoji.down'},
+  {e:'📧',nKey:'emoji.email'},{e:'📱',nKey:'emoji.mobile'},{e:'💻',nKey:'emoji.laptop'},{e:'🖥️',nKey:'emoji.screen'},{e:'🖨️',nKey:'emoji.printer'},
+  {e:'🔒',nKey:'emoji.lock'},{e:'🔑',nKey:'emoji.key'},{e:'🛡️',nKey:'emoji.shield'},{e:'🔍',nKey:'emoji.search'},{e:'📡',nKey:'emoji.antenna'},
+  {e:'🌐',nKey:'emoji.globe'},{e:'🌍',nKey:'emoji.earth'},{e:'☁️',nKey:'emoji.cloud'},{e:'📦',nKey:'emoji.package'},{e:'🗃️',nKey:'emoji.file'},
+  {e:'🎵',nKey:'emoji.music'},{e:'🎬',nKey:'emoji.cinema'},{e:'📸',nKey:'emoji.photo'},{e:'🎮',nKey:'emoji.games'},{e:'🎨',nKey:'emoji.art'},
+  {e:'📚',nKey:'emoji.books'},{e:'✏️',nKey:'emoji.pencil'},{e:'📝',nKey:'emoji.notes'},{e:'📌',nKey:'emoji.pin'},{e:'📎',nKey:'emoji.clip'},
+  {e:'🗂️',nKey:'emoji.binder'},{e:'🗓️',nKey:'emoji.calendar'},{e:'⏰',nKey:'emoji.alarm'},{e:'🔔',nKey:'emoji.bell'},{e:'💬',nKey:'emoji.chat'},
+  {e:'👤',nKey:'emoji.user'},{e:'👥',nKey:'emoji.group'},{e:'🏢',nKey:'emoji.office'},{e:'🏪',nKey:'emoji.shop'},{e:'🏭',nKey:'emoji.factory'},
+  {e:'🚗',nKey:'emoji.car'},{e:'✈️',nKey:'emoji.plane'},{e:'🚂',nKey:'emoji.train'},{e:'🛒',nKey:'emoji.cart'},{e:'💰',nKey:'emoji.money'},
+  {e:'💳',nKey:'emoji.card'},{e:'🏦',nKey:'emoji.bank'},{e:'📞',nKey:'emoji.phone'},{e:'🔗',nKey:'emoji.link'},{e:'⬇️',nKey:'emoji.download'},
+  {e:'⬆️',nKey:'emoji.upload'},{e:'♻️',nKey:'emoji.recycle'},{e:'✅',nKey:'emoji.check'},{e:'❌',nKey:'emoji.cross'},{e:'⚠️',nKey:'emoji.warning'},
+  {e:'💾',nKey:'emoji.floppy'},{e:'🗄️',nKey:'emoji.server'},{e:'🔌',nKey:'emoji.plug'},{e:'🧪',nKey:'emoji.lab'},{e:'🤖',nKey:'emoji.robot'},
+  {e:'🧠',nKey:'emoji.brain'},{e:'📺',nKey:'emoji.tv'},{e:'🔊',nKey:'emoji.sound'},{e:'🎙️',nKey:'emoji.mic'},{e:'📻',nKey:'emoji.radio'},
+  {e:'🍕',nKey:'emoji.pizza'},{e:'☕',nKey:'emoji.coffee'},{e:'🍿',nKey:'emoji.popcorn'},{e:'🎁',nKey:'emoji.gift'},{e:'🏆',nKey:'emoji.trophy'},
+  {e:'🛠️',nKey:'emoji.tools'},{e:'🧩',nKey:'emoji.puzzle'},{e:'🗺️',nKey:'emoji.map'},{e:'🏠',nKey:'emoji.home'},
 ];
 
 function emojiToDataUri(emoji) {
@@ -2600,24 +2683,24 @@ function emojiToDataUri(emoji) {
 function iconPickerHTML(currentIcon) {
   return `
     <div class="form-group">
-      <label>Icone</label>
+      <label>${t('icon.label')}</label>
       <div class="icon-picker-tabs">
-        <button type="button" class="btn btn-sm btn-ghost icon-tab active" onclick="setIconTab('auto')">Auto</button>
-        <button type="button" class="btn btn-sm btn-ghost icon-tab" onclick="setIconTab('library')">Bibliotheque</button>
-        <button type="button" class="btn btn-sm btn-ghost icon-tab" onclick="setIconTab('emoji')">Emoji</button>
-        <button type="button" class="btn btn-sm btn-ghost icon-tab" onclick="setIconTab('upload')">Upload</button>
-        <button type="button" class="btn btn-sm btn-ghost icon-tab" onclick="setIconTab('custom')">URL</button>
+        <button type="button" class="btn btn-sm btn-ghost icon-tab active" onclick="setIconTab('auto')">${t('icon.tab.auto')}</button>
+        <button type="button" class="btn btn-sm btn-ghost icon-tab" onclick="setIconTab('library')">${t('icon.tab.library')}</button>
+        <button type="button" class="btn btn-sm btn-ghost icon-tab" onclick="setIconTab('emoji')">${t('icon.tab.emoji')}</button>
+        <button type="button" class="btn btn-sm btn-ghost icon-tab" onclick="setIconTab('upload')">${t('icon.tab.upload')}</button>
+        <button type="button" class="btn btn-sm btn-ghost icon-tab" onclick="setIconTab('custom')">${t('icon.tab.url')}</button>
       </div>
       <div id="icon-section-auto">
-        <div style="font-size:12px;color:var(--text-muted)">L'icone sera recuperee automatiquement depuis le site.</div>
+        <div style="font-size:12px;color:var(--text-muted)">${t('icon.autoHint')}</div>
       </div>
       <div id="icon-section-library" class="hidden">
-        <input type="text" id="icon-search" placeholder="Rechercher parmi 3000+ icones..." oninput="filterIcons(this.value)">
+        <input type="text" id="icon-search" placeholder="${t('icon.searchLibrary')}" oninput="filterIcons(this.value)">
         <div id="icon-cat-filters" style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0"></div>
         <div class="icon-grid" id="icon-grid"></div>
       </div>
       <div id="icon-section-emoji" class="hidden">
-        <input type="text" id="emoji-search" placeholder="Rechercher un emoji..." oninput="filterEmojis(this.value)">
+        <input type="text" id="emoji-search" placeholder="${t('icon.searchEmoji')}" oninput="filterEmojis(this.value)">
         <div class="icon-grid" id="emoji-grid"></div>
       </div>
       <div id="icon-section-upload" class="hidden">
@@ -2627,8 +2710,8 @@ function iconPickerHTML(currentIcon) {
              ondragleave="this.style.borderColor='var(--border)'"
              ondrop="event.preventDefault();this.style.borderColor='var(--border)';handleIconDrop(event)">
           <div style="font-size:28px;margin-bottom:8px">📁</div>
-          <div style="font-size:13px;color:var(--text-muted)">Cliquer ou glisser une image ici</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">PNG, JPG, SVG, ICO, WebP — max 200 Ko</div>
+          <div style="font-size:13px;color:var(--text-muted)">${t('icon.uploadDrop')}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${t('icon.uploadFormats')}</div>
         </div>
         <input type="file" id="icon-file-input" accept="image/*,.ico" style="display:none" onchange="handleIconUpload(this)">
       </div>
@@ -2638,7 +2721,7 @@ function iconPickerHTML(currentIcon) {
       <div id="icon-preview-box" class="icon-preview hidden">
         <img id="icon-preview-img" src="" alt="">
         <span id="icon-preview-name"></span>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="clearIconSelection()" style="margin-left:auto">Retirer</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="clearIconSelection()" style="margin-left:auto">${t('icon.remove')}</button>
       </div>
       <input type="hidden" id="bm-icon-value" value="${esc(currentIcon)}">
     </div>`;
@@ -2672,7 +2755,7 @@ function renderCatFilters() {
   const container = document.getElementById('icon-cat-filters');
   if (!container) return;
   container.innerHTML = ICON_CATEGORIES.map(c =>
-    `<button type="button" class="btn btn-sm ${c.key === activeIconCat ? 'btn-primary' : 'btn-ghost'}" style="padding:3px 8px;font-size:11px" onclick="filterByCategory('${c.key}')">${c.label}</button>`
+    `<button type="button" class="btn btn-sm ${c.key === activeIconCat ? 'btn-primary' : 'btn-ghost'}" style="padding:3px 8px;font-size:11px" onclick="filterByCategory('${c.key}')">${t(c.labelKey)}</button>`
   ).join('');
 }
 
@@ -2690,9 +2773,9 @@ function renderEmojiGrid(emojis) {
   const grid = document.getElementById('emoji-grid');
   if (!grid) return;
   grid.innerHTML = emojis.map(e => `
-    <div class="icon-grid-item" onclick="selectEmoji('${e.e}','${esc(e.n)}')">
+    <div class="icon-grid-item" onclick="selectEmoji('${e.e}','${esc(t(e.nKey))}')">
       <span style="font-size:28px;line-height:1">${e.e}</span>
-      <span>${esc(e.n)}</span>
+      <span>${esc(t(e.nKey))}</span>
     </div>
   `).join('');
 }
@@ -2708,14 +2791,14 @@ function selectEmoji(emoji, name) {
 
 function filterEmojis(query) {
   const q = query.toLowerCase().trim();
-  const filtered = q ? EMOJI_ICONS.filter(e => e.n.toLowerCase().includes(q)) : EMOJI_ICONS;
+  const filtered = q ? EMOJI_ICONS.filter(e => t(e.nKey).toLowerCase().includes(q)) : EMOJI_ICONS;
   renderEmojiGrid(filtered);
 }
 
 function handleIconUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 200 * 1024) { toast('Fichier trop lourd (max 200 Ko)', 'error'); return; }
+  if (file.size > 200 * 1024) { toast(t('icon.fileTooLarge'), 'error'); return; }
   const reader = new FileReader();
   reader.onload = (e) => {
     const dataUri = e.target.result;
@@ -2724,7 +2807,7 @@ function handleIconUpload(input) {
     preview.classList.remove('hidden');
     document.getElementById('icon-preview-img').src = dataUri;
     document.getElementById('icon-preview-name').textContent = file.name;
-    toast('Icone chargee', 'success');
+    toast(t('icon.uploaded'), 'success');
   };
   reader.readAsDataURL(file);
 }
@@ -2816,10 +2899,10 @@ function selectIcon(slug, name) {
 }
 
 function setIconTab(tab) {
-  const tabMap = {auto:'Auto', library:'Biblio', emoji:'Emoji', upload:'Upload', custom:'URL'};
-  document.querySelectorAll('.icon-tab').forEach(btn => {
-    const t = btn.textContent.trim();
-    btn.classList.toggle('active', t === tabMap[tab] || t === 'Bibliotheque' && tab === 'library');
+  const tabs = ['auto','library','emoji','upload','custom'];
+  const btns = document.querySelectorAll('.icon-tab');
+  btns.forEach((btn, i) => {
+    btn.classList.toggle('active', tabs[i] === tab);
   });
   ['auto','library','emoji','upload','custom'].forEach(t => {
     const el = document.getElementById('icon-section-' + t);
@@ -2845,7 +2928,7 @@ function updateIconPreview() {
   if (val) {
     preview.classList.remove('hidden');
     document.getElementById('icon-preview-img').src = val;
-    document.getElementById('icon-preview-name').textContent = 'Icone personnalisee';
+    document.getElementById('icon-preview-name').textContent = t('icon.customIcon');
   } else {
     preview.classList.add('hidden');
   }
@@ -2915,7 +2998,7 @@ async function sendAIMessage(event, widgetId) {
   btn.disabled = true;
   const typing = document.createElement('div');
   typing.className = 'ai-typing';
-  typing.textContent = 'Reflexion en cours...';
+  typing.textContent = t('ai.thinking');
   container.appendChild(typing);
   container.scrollTop = container.scrollHeight;
 
@@ -2928,7 +3011,7 @@ async function sendAIMessage(event, widgetId) {
   } catch (e) {
     const errDiv = document.createElement('div');
     errDiv.className = 'ai-msg error';
-    errDiv.textContent = e.message || 'Erreur';
+    errDiv.textContent = e.message || t('ai.error');
     container.appendChild(errDiv);
   }
   typing.remove();
@@ -2949,9 +3032,9 @@ function editAIConfig(widgetId) {
   page?.columns.forEach(c => c.widgets.forEach(w => { if (w.id === widgetId) widget = w; }));
   if (!widget) return;
   const cfg = widget.config || {};
-  showModal('Configuration IA', `
+  showModal(t('ai.config.title'), `
     <div class="form-group">
-      <label>Provider</label>
+      <label>${t('form.provider')}</label>
       <select id="ai-cfg-provider">
         <option value="mistral" ${cfg.provider === 'mistral' ? 'selected' : ''}>Mistral</option>
         <option value="openai" ${cfg.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
@@ -2959,12 +3042,12 @@ function editAIConfig(widgetId) {
       </select>
     </div>
     <div class="form-group">
-      <label>Cle API</label>
-      <input type="password" id="ai-cfg-key" value="${esc(cfg.apiKey || '')}" placeholder="Votre cle API">
+      <label>${t('form.apiKey')}</label>
+      <input type="password" id="ai-cfg-key" value="${esc(cfg.apiKey || '')}" placeholder="${t('form.apiKeyPlaceholder')}">
     </div>
     <div class="form-group">
-      <label>Modele (optionnel)</label>
-      <input type="text" id="ai-cfg-model" value="${esc(cfg.model || '')}" placeholder="Laisser vide = modele par defaut">
+      <label>${t('form.model')}</label>
+      <input type="text" id="ai-cfg-model" value="${esc(cfg.model || '')}" placeholder="${t('form.modelHint')}">
       <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
         Mistral: mistral-small-latest, mistral-medium-latest, mistral-large-latest<br>
         OpenAI: gpt-4o-mini, gpt-4o, gpt-4.1-mini<br>
@@ -2972,9 +3055,9 @@ function editAIConfig(widgetId) {
       </div>
     </div>
     <div class="form-group">
-      <label>Retention des messages (jours)</label>
+      <label>${t('ai.config.retention')}</label>
       <input type="number" id="ai-cfg-retention" value="${cfg.retentionDays || 30}" min="1" max="365">
-      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Les messages plus anciens sont automatiquement supprimes</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${t('ai.config.retentionHint')}</div>
     </div>
   `, async () => {
     const provider = document.getElementById('ai-cfg-provider').value;
@@ -2993,11 +3076,11 @@ function showModal(title, content, onConfirm) {
   const modal = document.getElementById('modal');
   const actions = onConfirm ? `
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
-      <button class="btn btn-primary" style="width:auto" id="modal-confirm">Confirmer</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t('modal.cancel')}</button>
+      <button class="btn btn-primary" style="width:auto" id="modal-confirm">${t('modal.confirm')}</button>
     </div>` : `
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+      <button class="btn btn-ghost" onclick="closeModal()">${t('modal.close')}</button>
     </div>`;
 
   modal.innerHTML = `<h2>${title}</h2>${content}${actions}`;
@@ -3064,17 +3147,17 @@ function onFaviconError(img, title) {
 // ─── View modes ──────────────────────────────────────
 const VIEW_MODES = {
   bookmarks: [
-    { key: '', label: 'Grille', icon: '&#9783;' },
-    { key: 'grid-sm', label: 'Grille compacte', icon: '&#9642;' },
-    { key: 'grid-lg', label: 'Grille large', icon: '&#9635;' },
-    { key: 'list', label: 'Liste', icon: '&#9776;' },
-    { key: 'icons', label: 'Icones seules', icon: '&#9673;' },
+    { key: '', labelKey: 'view.grid', icon: '&#9783;' },
+    { key: 'grid-sm', labelKey: 'view.gridCompact', icon: '&#9642;' },
+    { key: 'grid-lg', labelKey: 'view.gridLarge', icon: '&#9635;' },
+    { key: 'list', labelKey: 'view.list', icon: '&#9776;' },
+    { key: 'icons', labelKey: 'view.iconsOnly', icon: '&#9673;' },
   ],
   rss: [
-    { key: '', label: 'Standard', icon: '&#9783;' },
-    { key: 'headlines', label: 'Titres seuls', icon: '&#9776;' },
-    { key: 'magazine', label: 'Magazine', icon: '&#9635;' },
-    { key: 'full', label: 'Images larges', icon: '&#9638;' },
+    { key: '', labelKey: 'view.rss.standard', icon: '&#9783;' },
+    { key: 'headlines', labelKey: 'view.rss.headlines', icon: '&#9776;' },
+    { key: 'magazine', labelKey: 'view.rss.magazine', icon: '&#9635;' },
+    { key: 'full', labelKey: 'view.rss.full', icon: '&#9638;' },
   ]
 };
 
@@ -3092,7 +3175,7 @@ function toggleViewMode(event, widgetId, type) {
   dropdown.style.right = (window.innerWidth - rect.right) + 'px';
   dropdown.innerHTML = modes.map(m =>
     `<div class="dropdown-item ${m.key === currentMode ? 'active' : ''}" style="${m.key === currentMode ? 'color:var(--accent);font-weight:600' : ''}" onclick="event.stopPropagation();setViewMode(${widgetId},'${m.key}')">
-      <span>${m.icon}</span> ${m.label}
+      <span>${m.icon}</span> ${t(m.labelKey)}
     </div>`
   ).join('');
 
@@ -3179,9 +3262,13 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ─── Init on load ─────────────────────────────────────
-if (!checkPublicPage()) {
-  if (token) initApp();
-}
+(async function() {
+  await loadTranslations(getLang());
+  updateLoginScreen();
+  if (!checkPublicPage()) {
+    if (token) initApp();
+  }
+})();
 
 window.addEventListener('hashchange', () => {
   if (checkPublicPage()) {
