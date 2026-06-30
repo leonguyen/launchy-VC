@@ -35,6 +35,7 @@ Deploy it on your own server with Docker, keep full control of your data, and en
 - **Import/Export** — Netscape HTML bookmarks, OPML for RSS feeds
 - **Browser extensions** — Firefox (WebExtension) and Chromium (Chrome/Brave/Edge) to add bookmarks from any page
 - **Link target** — user preference to open links in new tab or same page
+- **Multilingual** — English (default) and French, with community-driven translations welcome
 - **Responsive** — works on desktop and tablet
 
 ## Quick Start
@@ -82,6 +83,8 @@ The default account is:
 | `admin`  | `admin`  |
 
 > **Change the default password immediately** after first login via the user menu.
+
+The `admin` account starts with a blank dashboard — add your own pages, columns, and widgets from scratch. When you create additional user accounts, they are pre-populated with sample content (bookmarks, RSS feeds, weather, etc.) to help new users get started.
 
 ## Configuration
 
@@ -185,7 +188,7 @@ Launchy includes browser extensions for quick bookmark adding from any web page.
 ### Firefox
 
 1. Build the extension: `./build-extensions.sh`
-2. In Launchy, go to **user menu > Extension navigateur** and click the install link
+2. In Launchy, go to **user menu > Browser extension** and click the install link
 3. Or navigate directly to `http://your-server:3080/launchy-extension.xpi`
 
 For self-signed extensions, you need to sign them via [Mozilla AMO](https://addons.mozilla.org/developers/) (unlisted channel):
@@ -226,6 +229,14 @@ The server starts on `http://localhost:3000` by default (or the port set in the 
 - **Font:** [Nunito](https://fonts.google.com/specimen/Nunito) (Google Fonts)
 - **Drag & Drop:** [SortableJS](https://sortablejs.github.io/Sortable/) (CDN)
 - **Weather:** [wttr.in](https://wttr.in) (no API key)
+
+## Contributing
+
+Contributions are welcome! Here are some ways you can help:
+
+- **Translations** — Launchy currently supports English and French. Adding a new language is as simple as creating a JSON file in `public/lang/` (use `en.json` as a template). Pull requests for new languages are greatly appreciated!
+- **Plugins & extensions** — ideas for new widget types, browser extensions for other browsers, or integrations with self-hosted services
+- **Bug reports & feature requests** — open an issue on GitHub
 
 ## License
 
