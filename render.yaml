@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: launchy-dashboard
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free # Can be upgraded to 'starter' or higher if needed
+    region: oregon # Choose your closest region
+    envVars:
+      - key: PORT
+        value: 3080
+      - key: JWT_SECRET
+        generateValue: true # Generates a secure random 32+ character string automatically
